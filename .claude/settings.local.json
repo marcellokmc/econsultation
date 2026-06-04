@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-Command avdmanager -ErrorAction SilentlyContinue; Get-Item \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\emulator\\\\emulator.exe\" -ErrorAction SilentlyContinue; Get-Item \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\bin\\\\studio64.exe\" -ErrorAction SilentlyContinue)"
+    ]
+  }
+}

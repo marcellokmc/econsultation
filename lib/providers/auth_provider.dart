@@ -1,87 +1,102 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
+import '../services/storage_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   User? _currentUser;
 
-  User? get currentUser => _currentUser;
-  bool get isLoggedIn => _currentUser != null;
-
-  static final List<User> _users = [
+  // Liste modifiable pour permettre la gestion CRUD des patients par les médecins
+  final List<User> _users = [
+    // ── Équipe de développement — médecins (dans l'ordre) ──
     User(
       id: 'doc1',
-      name: 'Dr. Martin Dupont',
-      email: 'dr.martin@econsult.fr',
+      name: 'Dr. BADINI Ousmane',
+      email: 'badini@uv.gov.bf',
       password: 'doctor123',
       role: UserRole.doctor,
-      phone: '06 12 34 56 78',
+      phone: '70 11 22 33 44',
       specialty: 'Médecin Généraliste',
       rating: 4.9,
-      experienceYears: 15,
-    ),
-    User(
-      id: 'doc2',
-      name: 'Dr. Sophie Bernard',
-      email: 'dr.sophie@econsult.fr',
-      password: 'doctor123',
-      role: UserRole.doctor,
-      phone: '06 98 76 54 32',
-      specialty: 'Cardiologue',
-      rating: 4.8,
       experienceYears: 12,
     ),
     User(
-      id: 'doc3',
-      name: 'Dr. Pierre Nguyen',
-      email: 'dr.pierre@econsult.fr',
+      id: 'doc2',
+      name: 'Dr. KABORE Issa',
+      email: 'kabore@uv.gov.bf',
       password: 'doctor123',
       role: UserRole.doctor,
-      phone: '06 77 88 99 00',
+      phone: '76 22 33 44 55',
+      specialty: 'Cardiologue',
+      rating: 4.8,
+      experienceYears: 10,
+    ),
+    User(
+      id: 'doc3',
+      name: 'Dr. SAWADOGO Maurice',
+      email: 'sawadogo.m@uv.gov.bf',
+      password: 'doctor123',
+      role: UserRole.doctor,
+      phone: '65 33 44 55 66',
       specialty: 'Pédiatre',
-      rating: 4.7,
+      rating: 4.8,
       experienceYears: 8,
     ),
     User(
+      id: 'doc4',
+      name: 'Dr. SAWADOGO Marcel',
+      email: 'sawadogo.ma@uv.gov.bf',
+      password: 'doctor123',
+      role: UserRole.doctor,
+      phone: '74 44 55 66 77',
+      specialty: 'Chirurgien Général',
+      rating: 4.7,
+      experienceYears: 9,
+    ),
+    // ── Patients — noms burkinabè ──
+    User(
       id: 'pat1',
-      name: 'Jean Durand',
-      email: 'jean.durand@email.fr',
+      name: 'NIKIEMA Wendinpuiré',
+      email: 'nikiema@uv.gov.bf',
       password: 'patient123',
       role: UserRole.patient,
-      phone: '07 11 22 33 44',
+      phone: '70 55 66 77 88',
     ),
     User(
       id: 'pat2',
-      name: 'Marie Lambert',
-      email: 'marie.lambert@email.fr',
+      name: 'OUEDRAOGO Moussa',
+      email: 'ouedraogo@uv.gov.bf',
       password: 'patient123',
       role: UserRole.patient,
-      phone: '07 55 66 77 88',
+      phone: '76 66 77 88 99',
     ),
     User(
       id: 'pat3',
-      name: 'Pierre Martin',
-      email: 'pierre.martin@email.fr',
+      name: 'BELEM Issa',
+      email: 'belem@uv.gov.bf',
       password: 'patient123',
       role: UserRole.patient,
-      phone: '06 44 55 66 77',
+      phone: '65 77 88 99 00',
     ),
     User(
       id: 'pat4',
-      name: 'Isabelle Moreau',
-      email: 'isabelle.moreau@email.fr',
+      name: 'DRABO Aïssata',
+      email: 'drabo@uv.gov.bf',
       password: 'patient123',
       role: UserRole.patient,
-      phone: '07 88 99 00 11',
+      phone: '74 88 99 00 11',
     ),
     User(
       id: 'pat5',
-      name: 'François Petit',
-      email: 'francois.petit@email.fr',
+      name: 'NEBIE Souleymane',
+      email: 'nebie@uv.gov.bf',
       password: 'patient123',
       role: UserRole.patient,
-      phone: '06 22 33 44 55',
+      phone: '70 99 00 11 22',
     ),
   ];
+
+  User? get currentUser => _currentUser;
+  bool get isLoggedIn => _currentUser != null;
 
   bool login(String email, String password) {
     final matches = _users.where(
@@ -91,6 +106,7 @@ class AuthProvider extends ChangeNotifier {
     );
     if (matches.isNotEmpty) {
       _currentUser = matches.first;
+      StorageService.saveSession(_currentUser!.id);
       notifyListeners();
       return true;
     }
@@ -99,7 +115,19 @@ class AuthProvider extends ChangeNotifier {
 
   void logout() {
     _currentUser = null;
+    StorageService.clearSession();
     notifyListeners();
+  }
+
+  // Restaure la session depuis Hive (auto-login biométrique)
+  bool restoreSession() {
+    final savedId = StorageService.getSession();
+    if (savedId == null) return false;
+    final match = _users.where((u) => u.id == savedId);
+    if (match.isEmpty) return false;
+    _currentUser = match.first;
+    notifyListeners();
+    return true;
   }
 
   List<User> get doctors => _users.where((u) => u.isDoctor).toList();
@@ -108,5 +136,38 @@ class AuthProvider extends ChangeNotifier {
   User? getUserById(String id) {
     final m = _users.where((u) => u.id == id);
     return m.isEmpty ? null : m.first;
+  }
+
+  // Vérifie si un email est déjà utilisé (excludeId pour ignorer l'utilisateur en cours d'édition)
+  bool emailExists(String email, {String? excludeId}) {
+    return _users.any(
+      (u) =>
+          u.email.toLowerCase() == email.toLowerCase() && u.id != excludeId,
+    );
+  }
+
+  // Ajoute un nouveau patient dans le système
+  void addUser(User user) {
+    _users.add(user);
+    notifyListeners();
+  }
+
+  // Met à jour les informations d'un utilisateur existant
+  void updateUser(User updatedUser) {
+    final idx = _users.indexWhere((u) => u.id == updatedUser.id);
+    if (idx >= 0) {
+      _users[idx] = updatedUser;
+      // Mettre à jour la session si c'est l'utilisateur connecté
+      if (_currentUser?.id == updatedUser.id) {
+        _currentUser = updatedUser;
+      }
+      notifyListeners();
+    }
+  }
+
+  // Supprime un patient (jamais un médecin, pour la sécurité)
+  void deleteUser(String id) {
+    _users.removeWhere((u) => u.id == id && !u.isDoctor);
+    notifyListeners();
   }
 }

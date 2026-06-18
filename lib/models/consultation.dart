@@ -1,11 +1,13 @@
 class Consultation {
   final String id;
-  final String appointmentId;
+  // Null pour les consultations sans rendez-vous préalable (consultation directe)
+  final String? appointmentId;
   final String patientId;
   final String doctorId;
   final DateTime date;
   final String notes;
   final String diagnosis;
+  // Résumé texte de l'ordonnance — le modèle Prescription contient la version structurée
   final String prescription;
   final double? weight;
   final double? temperature;
@@ -14,7 +16,7 @@ class Consultation {
 
   Consultation({
     required this.id,
-    required this.appointmentId,
+    this.appointmentId,
     required this.patientId,
     required this.doctorId,
     required this.date,

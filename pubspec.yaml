@@ -1,5 +1,5 @@
 name: econsultation
-description: "A new Flutter project."
+description: "Application de gestion des consultations médicales — Master e-Santé"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -11,13 +11,41 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # UI
   cupertino_icons: ^1.0.8
+  google_fonts: ^6.1.0
+
+  # État
   provider: ^6.0.0
+
+  # Données locales
+  hive_flutter: ^1.1.0
+
+  # Réseau
+  http: ^1.2.0
+  connectivity_plus: ^6.0.0
+
+  # Sécurité
+  local_auth: ^2.3.0
+  flutter_secure_storage: ^9.2.2
+
+  # Graphiques
+  fl_chart: ^0.69.0
+
+  # Utilitaires
+  intl: ^0.19.0
+  uuid: ^4.3.3
+
+  # Notifications locales
+  flutter_local_notifications: ^17.0.0
+
+  # Export PDF
+  pdf: ^3.11.1
+  printing: ^5.13.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.3
 

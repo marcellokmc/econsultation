@@ -14,32 +14,19 @@ class WelcomeScreen extends StatefulWidget {
 class _WelcomeScreenState extends State<WelcomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
-  late Animation<double> _brandFade;
-  late Animation<Offset> _cardsSlide;
-  late Animation<double> _cardsFade;
+  late Animation<double> _fade;
+  late Animation<Offset> _slide;
 
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 800));
-
-    _brandFade = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-          parent: _ctrl,
-          curve: const Interval(0.0, 0.6, curve: Curves.easeOut)),
+        vsync: this, duration: const Duration(milliseconds: 700));
+    _fade = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
     );
-    _cardsSlide =
-        Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
-            .animate(CurvedAnimation(
-      parent: _ctrl,
-      curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
-    ));
-    _cardsFade = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-          parent: _ctrl,
-          curve: const Interval(0.3, 0.85, curve: Curves.easeOut)),
-    );
+    _slide = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     _ctrl.forward();
   }
 
@@ -54,12 +41,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       context,
       PageRouteBuilder(
         pageBuilder: (_, _, _) => LoginScreen(role: role),
-        transitionDuration: const Duration(milliseconds: 400),
+        transitionDuration: const Duration(milliseconds: 420),
         transitionsBuilder: (_, anim, _, child) => FadeTransition(
           opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
           child: SlideTransition(
             position: Tween<Offset>(
-                    begin: const Offset(0.03, 0), end: Offset.zero)
+                    begin: const Offset(0.04, 0), end: Offset.zero)
                 .animate(
                     CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
             child: child,
@@ -72,160 +59,127 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
+      backgroundColor: const Color(0xFFF8FAFD),
+      body: Stack(
         children: [
-          // ── Gradient branding area (top, fills remaining space) ──────────
-          Expanded(
-            child: FadeTransition(
-              opacity: _brandFade,
-              child: Stack(
-                children: [
-                  // Gradient background
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF1A6FDB), Color(0xFF0D47A1)],
-                      ),
-                      borderRadius: BorderRadius.vertical(
-                          bottom: Radius.circular(36)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0x20000000),
-                          blurRadius: 20,
-                          offset: Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Decorative circles
-                  Positioned(
-                    top: -70,
-                    right: -70,
-                    child: _Circle(200, 0.07),
-                  ),
-                  Positioned(
-                    bottom: 20,
-                    left: -60,
-                    child: _Circle(160, 0.05),
-                  ),
-                  Positioned(
-                    top: 80,
-                    right: 40,
-                    child: _Circle(55, 0.08),
-                  ),
-                  // Branding content
-                  SafeArea(
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 82,
-                            height: 82,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.18),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  width: 2),
-                            ),
-                            child: const Icon(
-                              Icons.medical_services_rounded,
-                              color: Colors.white,
-                              size: 40,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          const Text(
-                            'eConsultation',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 30,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.4,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Consultation médicale en ligne',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          // Trust pills
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _TrustPill(
-                                  icon: Icons.lock_rounded,
-                                  label: 'Sécurisé'),
-                              const SizedBox(width: 10),
-                              _TrustPill(
-                                  icon: Icons.verified_rounded,
-                                  label: 'Certifié'),
-                              const SizedBox(width: 10),
-                              _TrustPill(
-                                  icon: Icons.star_rounded, label: '4.9/5'),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          // Blob décoratif haut-gauche
+          Positioned(
+            top: -90,
+            left: -70,
+            child: _Blob(220, AppColors.primaryLight),
           ),
-          // ── Cards area (bottom, fixed height) ────────────────────────────
-          SlideTransition(
-            position: _cardsSlide,
+          // Blob décoratif haut-droite
+          Positioned(
+            top: -50,
+            right: -60,
+            child: _Blob(175, AppColors.primary.withValues(alpha: 0.10)),
+          ),
+          // Blob décoratif bas-droite (sarcelle subtil)
+          Positioned(
+            bottom: -70,
+            right: -50,
+            child: _Blob(160, AppColors.accentLight),
+          ),
+          SafeArea(
             child: FadeTransition(
-              opacity: _cardsFade,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Choisissez votre espace',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+              opacity: _fade,
+              child: SlideTransition(
+                position: _slide,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Spacer(flex: 3),
+
+                      // Icône app
+                      Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primary, AppColors.primaryDark],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.28),
+                              blurRadius: 22,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.medical_services_rounded,
+                          color: Colors.white,
+                          size: 36,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Doctor card
-                    _RoleCard(
-                      role: UserRole.doctor,
-                      title: 'Espace Médecin',
-                      subtitle: 'Gérez vos patients et consultations',
-                      icon: Icons.local_hospital_rounded,
-                      gradientColors: const [
-                        Color(0xFF1A6FDB),
-                        Color(0xFF0A3F8A),
-                      ],
-                      onTap: () => _navigate(UserRole.doctor),
-                    ),
-                    const SizedBox(height: 12),
-                    // Patient card
-                    _RoleCard(
-                      role: UserRole.patient,
-                      title: 'Espace Patient',
-                      subtitle: 'Consultez et suivez votre santé',
-                      icon: Icons.favorite_rounded,
-                      gradientColors: const [
-                        Color(0xFF00BFA5),
-                        Color(0xFF006B5E),
-                      ],
-                      onTap: () => _navigate(UserRole.patient),
-                    ),
-                  ],
+                      const SizedBox(height: 18),
+
+                      const Text(
+                        'eConsultation',
+                        style: TextStyle(
+                          fontSize: 27,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Consultation médicale en ligne',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+
+                      const Spacer(flex: 3),
+
+                      // Label sélection
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Se connecter en tant que :',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                            letterSpacing: 0.1,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Carte Médecin
+                      _RoleCard(
+                        role: UserRole.doctor,
+                        icon: Icons.local_hospital_rounded,
+                        title: 'Médecin',
+                        subtitle: 'Gérez vos patients et consultations',
+                        color: AppColors.primary,
+                        lightColor: AppColors.primaryLight,
+                        onTap: () => _navigate(UserRole.doctor),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Carte Patient
+                      _RoleCard(
+                        role: UserRole.patient,
+                        icon: Icons.favorite_rounded,
+                        title: 'Patient',
+                        subtitle: 'Consultez et suivez votre santé',
+                        color: AppColors.accent,
+                        lightColor: AppColors.accentLight,
+                        onTap: () => _navigate(UserRole.patient),
+                      ),
+
+                      const Spacer(flex: 2),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -236,162 +190,109 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   }
 }
 
-// ─── Compact role card ────────────────────────────────────────────────────────
+// ─── Carte de sélection de rôle ───────────────────────────────────────────────
 
 class _RoleCard extends StatelessWidget {
   final UserRole role;
+  final IconData icon;
   final String title;
   final String subtitle;
-  final IconData icon;
-  final List<Color> gradientColors;
+  final Color color;
+  final Color lightColor;
   final VoidCallback onTap;
 
   const _RoleCard({
     required this.role,
+    required this.icon,
     required this.title,
     required this.subtitle,
-    required this.icon,
-    required this.gradientColors,
+    required this.color,
+    required this.lightColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: gradientColors,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: color.withValues(alpha: 0.18), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.07),
+                blurRadius: 18,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: gradientColors.first.withValues(alpha: 0.35),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Hero icon
-            Hero(
-              tag: 'role_icon_${role.name}',
-              child: Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
+          child: Row(
+            children: [
+              Hero(
+                tag: 'role_icon_${role.name}',
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: lightColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 24),
                 ),
-                child: Icon(icon, color: Colors.white, size: 25),
               ),
-            ),
-            const SizedBox(width: 16),
-            // Text
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.2,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      fontSize: 12,
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            // Arrow
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.arrow_forward_rounded,
-                color: Colors.white,
-                size: 17,
-              ),
-            ),
-          ],
+              Icon(Icons.arrow_forward_ios_rounded, color: color, size: 15),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Blob décoratif ───────────────────────────────────────────────────────────
 
-class _Circle extends StatelessWidget {
+class _Blob extends StatelessWidget {
   final double size;
-  final double opacity;
-  const _Circle(this.size, this.opacity);
+  final Color color;
+  const _Blob(this.size, this.color);
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: opacity),
-        border: Border.all(
-            color: Colors.white.withValues(alpha: opacity * 1.8),
-            width: 1.2),
-      ),
-    );
-  }
-}
-
-class _TrustPill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _TrustPill({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: Colors.white.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 12),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

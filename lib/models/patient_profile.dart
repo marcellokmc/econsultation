@@ -1,6 +1,23 @@
+// Sexe du patient tel que requis dans la fiche patient
+enum Sexe { masculin, feminin, autre }
+
+extension SexeLabel on Sexe {
+  String get label {
+    switch (this) {
+      case Sexe.masculin:
+        return 'Masculin';
+      case Sexe.feminin:
+        return 'Féminin';
+      case Sexe.autre:
+        return 'Autre';
+    }
+  }
+}
+
 class PatientProfile {
   final String userId;
   final DateTime dateOfBirth;
+  final Sexe? sexe;
   final String bloodType;
   final List<String> allergies;
   final List<String> chronicConditions;
@@ -13,6 +30,7 @@ class PatientProfile {
     required this.userId,
     required this.dateOfBirth,
     required this.bloodType,
+    this.sexe,
     this.allergies = const [],
     this.chronicConditions = const [],
     this.emergencyContact,
@@ -44,5 +62,31 @@ class PatientProfile {
     if (b < 25) return 'Normal';
     if (b < 30) return 'Surpoids';
     return 'Obésité';
+  }
+
+  // Permet de créer une copie modifiée du profil (utilisé dans le formulaire d'édition)
+  PatientProfile copyWith({
+    DateTime? dateOfBirth,
+    Sexe? sexe,
+    String? bloodType,
+    List<String>? allergies,
+    List<String>? chronicConditions,
+    String? emergencyContact,
+    double? weight,
+    double? height,
+    String? address,
+  }) {
+    return PatientProfile(
+      userId: userId,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      sexe: sexe ?? this.sexe,
+      bloodType: bloodType ?? this.bloodType,
+      allergies: allergies ?? this.allergies,
+      chronicConditions: chronicConditions ?? this.chronicConditions,
+      emergencyContact: emergencyContact ?? this.emergencyContact,
+      weight: weight ?? this.weight,
+      height: height ?? this.height,
+      address: address ?? this.address,
+    );
   }
 }

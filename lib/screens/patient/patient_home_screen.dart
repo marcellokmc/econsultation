@@ -5,10 +5,15 @@ import '../../models/appointment.dart';
 import '../../models/consultation.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_helper.dart';
 import '../auth/welcome_screen.dart';
+import '../notifications_screen.dart';
+import '../profil_screen.dart';
+import '../teleconsultation_screen.dart';
 import 'book_appointment_screen.dart';
+import 'prescriptions_screen.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -30,41 +35,40 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           _AccueilTab(patientId: patientId),
           _RdvTab(patientId: patientId),
           _ConsultationsTab(patientId: patientId),
+          const PrescriptionsScreen(),
+          const ProfilScreen(),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-                color: Color(0x12000000),
-                blurRadius: 20,
-                offset: Offset(0, -4))
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _tab,
-          onTap: (i) => setState(() => _tab = i),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home_rounded),
-              label: 'Accueil',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.event_outlined),
-              activeIcon: Icon(Icons.event_rounded),
-              label: 'Rendez-vous',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.history_outlined),
-              activeIcon: Icon(Icons.history_rounded),
-              label: 'Consultations',
-            ),
-          ],
-        ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (i) => setState(() => _tab = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Accueil',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.event_outlined),
+            selectedIcon: Icon(Icons.event_rounded),
+            label: 'Rendez-vous',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.history_outlined),
+            selectedIcon: Icon(Icons.history_rounded),
+            label: 'Consultations',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.medication_outlined),
+            selectedIcon: Icon(Icons.medication_rounded),
+            label: 'Ordonnances',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded),
+            label: 'Profil',
+          ),
+        ],
       ),
     );
   }
@@ -108,9 +112,7 @@ class _AccueilTab extends StatelessWidget {
           ],
         ),
         actions: [
-          IconButton(
-              icon: const Icon(Icons.notifications_outlined, size: 24),
-              onPressed: () {}),
+          const _NotificationBell(),
           GestureDetector(
             onTap: () => _confirmLogout(context),
             child: Container(
@@ -178,7 +180,9 @@ class _AccueilTab extends StatelessWidget {
                 icon: Icons.medication_outlined,
                 label: 'Mes\nordonnances',
                 color: AppColors.accent,
-                onTap: () {},
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(
+                        builder: (_) => const PrescriptionsScreen())),
               )),
               const SizedBox(width: 12),
               Expanded(
@@ -364,27 +368,50 @@ class _NextAppointmentCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Container(
-                  height: 38,
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: const Center(
-                    child: Text('Rejoindre',
-                        style: TextStyle(
-                            color: AppColors.accentDark,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13)),
+                child: GestureDetector(
+                  onTap: () {
+                    final doctor = auth.getUserById(appointment.doctorId);
+                    final patient = auth.currentUser;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TeleconsultationScreen(
+                          doctor: doctor,
+                          patient: patient,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    height: 38,
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.video_call_rounded,
+                            color: AppColors.accentDark, size: 16),
+                        SizedBox(width: 5),
+                        Text('Rejoindre',
+                            style: TextStyle(
+                                color: AppColors.accentDark,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13)),
+                      ],
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               GestureDetector(
                 onTap: () {
-                  context
-                      .read<DataProvider>()
-                      .updateAppointmentStatus(
-                          appointment.id, AppointmentStatus.cancelled);
+                  context.read<DataProvider>().updateAppointmentStatus(
+                        appointment.id,
+                        AppointmentStatus.cancelled,
+                        notificationProvider:
+                            context.read<NotificationProvider>(),
+                      );
                 },
                 child: Container(
                   height: 38,
@@ -720,7 +747,9 @@ class _PatientApptCard extends StatelessWidget {
                       const Spacer(),
                       GestureDetector(
                         onTap: () => data.updateAppointmentStatus(
-                            appointment.id, AppointmentStatus.cancelled),
+                            appointment.id, AppointmentStatus.cancelled,
+                            notificationProvider:
+                                context.read<NotificationProvider>()),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
@@ -932,6 +961,8 @@ Color _apptStatusColor(AppointmentStatus s) {
       return AppColors.warning;
     case AppointmentStatus.confirmed:
       return AppColors.success;
+    case AppointmentStatus.refused:
+      return AppColors.warning;
     case AppointmentStatus.completed:
       return AppColors.textHint;
     case AppointmentStatus.cancelled:
@@ -947,6 +978,8 @@ Widget _apptStatusBadge(AppointmentStatus s) {
       label = 'En attente';
     case AppointmentStatus.confirmed:
       label = 'Confirmé';
+    case AppointmentStatus.refused:
+      label = 'Refusé';
     case AppointmentStatus.completed:
       label = 'Terminé';
     case AppointmentStatus.cancelled:
@@ -961,4 +994,53 @@ Widget _apptStatusBadge(AppointmentStatus s) {
         style: TextStyle(
             color: color, fontSize: 10, fontWeight: FontWeight.w600)),
   );
+}
+
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<NotificationProvider>(
+      builder: (context, notif, _) {
+        final count = notif.unreadCount;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined, size: 24),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen()),
+              ),
+            ),
+            if (count > 0)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: const BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      count > 9 ? '9+' : '$count',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
 }

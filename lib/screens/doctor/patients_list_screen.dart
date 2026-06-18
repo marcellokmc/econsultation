@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/patient_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_helper.dart';
+import 'add_edit_patient_screen.dart';
 import 'patient_detail_screen.dart';
 
 class PatientsListScreen extends StatefulWidget {
@@ -22,7 +24,7 @@ class _PatientsListScreenState extends State<PatientsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.read<AuthProvider>();
+    final auth = context.watch<AuthProvider>();
     final data = context.watch<DataProvider>();
     final allPatients = auth.patients;
 
@@ -58,6 +60,12 @@ class _PatientsListScreenState extends State<PatientsListScreen> {
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
         title: Text('Patients (${allPatients.length})'),
+      ),
+      // FAB pour créer un nouveau patient
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openAddPatient(context),
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.person_add_rounded, color: Colors.white),
       ),
       body: Column(
         children: [
@@ -129,22 +137,20 @@ class _PatientsListScreenState extends State<PatientsListScreen> {
                     child: Text('Aucun patient trouvé',
                         style: TextStyle(color: AppColors.textSecondary)))
                 : ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
                     itemCount: filtered.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (ctx, i) {
                       final patient = filtered[i];
-                      final profile =
-                          data.getProfileByUserId(patient.id);
+                      final profile = data.getProfileByUserId(patient.id);
                       final consultations =
                           data.getConsultationsForPatient(patient.id);
                       final lastVisit = consultations.isNotEmpty
                           ? consultations.first.date
                           : null;
-                      final avatarColor =
-                          AppColors.avatarColor(patient.id);
 
                       return GestureDetector(
+                        // Tap → détail patient
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -152,6 +158,9 @@ class _PatientsListScreenState extends State<PatientsListScreen> {
                                 patientId: patient.id),
                           ),
                         ),
+                        // Appui long → menu éditer / supprimer
+                        onLongPress: () =>
+                            _showPatientActions(context, patient.id),
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: AppDecorations.card,
@@ -161,7 +170,7 @@ class _PatientsListScreenState extends State<PatientsListScreen> {
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  color: avatarColor,
+                                  color: AppColors.avatarColor(patient.id),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Center(
@@ -188,7 +197,12 @@ class _PatientsListScreenState extends State<PatientsListScreen> {
                                     const SizedBox(height: 3),
                                     if (profile != null)
                                       Text(
-                                        '${profile.age} ans  •  Gr. ${profile.bloodType}',
+                                        [
+                                          '${profile.age} ans',
+                                          'Gr. ${profile.bloodType}',
+                                          if (profile.sexe != null)
+                                            profile.sexe!.label,
+                                        ].join('  •  '),
                                         style: const TextStyle(
                                             color: AppColors.textSecondary,
                                             fontSize: 12),
@@ -262,6 +276,103 @@ class _PatientsListScreenState extends State<PatientsListScreen> {
                       );
                     },
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openAddPatient(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) => const AddEditPatientScreen()),
+    );
+  }
+
+  // Menu contextuel : éditer ou supprimer un patient
+  void _showPatientActions(BuildContext context, String patientId) {
+    final auth = context.read<AuthProvider>();
+    final data = context.read<DataProvider>();
+    final patient = auth.getUserById(patientId);
+    final profile = data.getProfileByUserId(patientId);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 16),
+            Text(patient?.name ?? '',
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700, fontSize: 15)),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined, color: AppColors.primary),
+              title: const Text('Modifier le patient'),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AddEditPatientScreen(
+                        patient: patient, profile: profile),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded,
+                  color: AppColors.error),
+              title: const Text('Supprimer le patient',
+                  style: TextStyle(color: AppColors.error)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDelete(context, patientId, patient?.name ?? '');
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Demande confirmation avant suppression définitive
+  void _confirmDelete(
+      BuildContext context, String patientId, String name) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Supprimer le patient'),
+        content: Text(
+            'Supprimer $name ? Cette action est irréversible.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annuler')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error),
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<AuthProvider>().deleteUser(patientId);
+              context.read<DataProvider>().deleteProfile(patientId);
+            },
+            child: const Text('Supprimer'),
           ),
         ],
       ),

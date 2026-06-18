@@ -34,4 +34,27 @@ class User {
   }
 
   String get displayName => name;
+
+  // Copie modifiée sans changer l'id ni le rôle (utilisé lors de l'édition d'un patient)
+  User copyWith({
+    String? name,
+    String? email,
+    String? password,
+    String? phone,
+    String? specialty,
+    double? rating,
+    int? experienceYears,
+  }) {
+    return User(
+      id: id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      password: password ?? this.password,
+      role: role,
+      phone: phone ?? this.phone,
+      specialty: specialty ?? this.specialty,
+      rating: rating ?? this.rating,
+      experienceYears: experienceYears ?? this.experienceYears,
+    );
+  }
 }

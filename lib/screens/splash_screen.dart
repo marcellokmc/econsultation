@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import 'auth/welcome_screen.dart';
 import 'doctor/doctor_home_screen.dart';
 import 'patient/patient_home_screen.dart';
+import 'privacy_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -49,6 +51,15 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigate() {
     if (!mounted) return;
+
+    // Consentement RGPD — premier lancement
+    if (!StorageService.isPrivacyAccepted()) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+      );
+      return;
+    }
+
     final auth = context.read<AuthProvider>();
     final Widget dest = auth.isLoggedIn
         ? (auth.currentUser!.isDoctor

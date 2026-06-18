@@ -9,6 +9,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/data_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_helper.dart';
+import '../../widgets/vital_signs_chart.dart';
+import 'add_edit_patient_screen.dart';
+import 'create_consultation_screen.dart';
 import 'doctor_home_screen.dart' show AppointmentStatusBadge;
 
 class PatientDetailScreen extends StatelessWidget {
@@ -31,11 +34,27 @@ class PatientDetailScreen extends StatelessWidget {
 
     final consultations = data.getConsultationsForPatient(patientId);
     final appointments = data.getAppointmentsForPatient(patientId);
+    final doctorId = auth.currentUser!.id;
 
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         backgroundColor: AppColors.background,
+        // FAB pour démarrer une nouvelle consultation directe (sans RDV)
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CreateConsultationScreen(
+                patientId: patientId,
+              ),
+            ),
+          ),
+          backgroundColor: AppColors.primary,
+          icon: const Icon(Icons.medical_services_rounded, color: Colors.white),
+          label: const Text('Consultation',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        ),
         body: NestedScrollView(
           headerSliverBuilder: (ctx, inner) => [
             SliverAppBar(
@@ -45,6 +64,19 @@ class PatientDetailScreen extends StatelessWidget {
               foregroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
               scrolledUnderElevation: 0,
+              // Bouton d'édition du patient dans l'app bar
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddEditPatientScreen(
+                          patient: patient, profile: profile),
+                    ),
+                  ),
+                ),
+              ],
               flexibleSpace: FlexibleSpaceBar(
                 collapseMode: CollapseMode.pin,
                 background: _PatientHeader(
@@ -68,7 +100,11 @@ class PatientDetailScreen extends StatelessWidget {
           body: TabBarView(
             children: [
               _ProfileTab(patient: patient, profile: profile),
-              _ConsultationsTab(consultations: consultations, auth: auth),
+              _ConsultationsTab(
+                  consultations: consultations,
+                  auth: auth,
+                  patientId: patientId,
+                  doctorId: doctorId),
               _AppointmentsTab(
                   appointments: appointments, auth: auth, data: data),
             ],
@@ -126,6 +162,10 @@ class _PatientHeader extends StatelessWidget {
                     _InfoBadge(
                         label: 'Gr. ${profile!.bloodType}',
                         color: const Color(0xFFE53935)),
+                    if (profile!.sexe != null) ...[
+                      const SizedBox(width: 8),
+                      _InfoBadge(label: profile!.sexe!.label),
+                    ],
                     if (profile!.allergies.isNotEmpty) ...[
                       const SizedBox(width: 8),
                       _InfoBadge(
@@ -182,7 +222,7 @@ class _ProfileTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         if (profile != null) ...[
-          // Vital signs
+          // Signes vitaux
           Text('Signes vitaux',
               style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 10),
@@ -246,7 +286,7 @@ class _ProfileTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
-        // Chronic conditions
+        // Pathologies chroniques
         if (profile != null && profile!.chronicConditions.isNotEmpty) ...[
           Text('Pathologies chroniques',
               style: Theme.of(context).textTheme.titleSmall),
@@ -267,7 +307,7 @@ class _ProfileTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
-        // Contact info
+        // Informations personnelles
         Text('Informations personnelles',
             style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 10),
@@ -280,6 +320,14 @@ class _ProfileTab extends StatelessWidget {
                   icon: Icons.phone_outlined,
                   label: 'Téléphone',
                   value: patient.phone),
+              // Sexe affiché si renseigné
+              if (profile?.sexe != null) ...[
+                const Divider(height: 20),
+                _InfoRow(
+                    icon: Icons.wc_outlined,
+                    label: 'Sexe',
+                    value: profile!.sexe!.label),
+              ],
               if (profile?.address != null) ...[
                 const Divider(height: 20),
                 _InfoRow(
@@ -297,7 +345,7 @@ class _ProfileTab extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 80), // espace pour le FAB
       ],
     );
   }
@@ -423,21 +471,61 @@ class _InfoRow extends StatelessWidget {
 class _ConsultationsTab extends StatelessWidget {
   final List<Consultation> consultations;
   final AuthProvider auth;
-  const _ConsultationsTab(
-      {required this.consultations, required this.auth});
+  final String patientId;
+  final String doctorId;
+
+  const _ConsultationsTab({
+    required this.consultations,
+    required this.auth,
+    required this.patientId,
+    required this.doctorId,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (consultations.isEmpty) {
-      return const Center(
-          child: Text('Aucune consultation enregistrée',
-              style: TextStyle(color: AppColors.textSecondary)));
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.medical_services_outlined,
+                size: 48, color: AppColors.textHint),
+            const SizedBox(height: 10),
+            const Text('Aucune consultation enregistrée',
+                style: TextStyle(color: AppColors.textSecondary)),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CreateConsultationScreen(
+                      patientId: patientId),
+                ),
+              ),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Nouvelle consultation'),
+            ),
+          ],
+        ),
+      );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: consultations.length,
-      itemBuilder: (_, i) =>
-          _ConsultationCard(consultation: consultations[i]),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: VitalSignsChart(
+              consultations: consultations, type: VitalType.heartRate),
+        ),
+        const SizedBox(height: 4),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+            itemCount: consultations.length,
+            itemBuilder: (_, i) =>
+                _ConsultationCard(consultation: consultations[i]),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -501,7 +589,7 @@ class _ConsultationCardState extends State<_ConsultationCard> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                // Vitals row
+                // Signes vitaux rapides
                 if (c.weight != null ||
                     c.bloodPressure != null ||
                     c.temperature != null)
@@ -530,7 +618,7 @@ class _ConsultationCardState extends State<_ConsultationCard> {
                     ],
                   ),
                 const SizedBox(height: 8),
-                // Prescription preview
+                // Aperçu de la prescription
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -552,7 +640,7 @@ class _ConsultationCardState extends State<_ConsultationCard> {
               ],
             ),
           ),
-          // Expand button
+          // Bouton dérouler détails
           InkWell(
             onTap: () => setState(() => _expanded = !_expanded),
             child: Container(
@@ -560,16 +648,16 @@ class _ConsultationCardState extends State<_ConsultationCard> {
                   const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
               decoration: BoxDecoration(
                 color: AppColors.background,
-                borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(16)),
+                borderRadius: BorderRadius.vertical(
+                    bottom: _expanded
+                        ? Radius.zero
+                        : const Radius.circular(16)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    _expanded
-                        ? 'Masquer les détails'
-                        : 'Voir les détails',
+                    _expanded ? 'Masquer les détails' : 'Voir les détails',
                     style: const TextStyle(
                         color: AppColors.primary,
                         fontSize: 12,
@@ -678,10 +766,8 @@ class _AppointmentsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final upcoming =
-        appointments.where((a) => a.isUpcoming).toList();
-    final past =
-        appointments.where((a) => a.isPast).toList();
+    final upcoming = appointments.where((a) => a.isUpcoming).toList();
+    final past = appointments.where((a) => a.isPast).toList();
 
     if (appointments.isEmpty) {
       return const Center(
@@ -690,7 +776,7 @@ class _AppointmentsTab extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
       children: [
         if (upcoming.isNotEmpty) ...[
           const Text('À venir',

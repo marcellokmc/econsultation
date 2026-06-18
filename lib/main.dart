@@ -4,11 +4,18 @@ import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/data_provider.dart';
+import 'providers/notification_provider.dart';
 import 'screens/splash_screen.dart';
+import 'services/notification_service.dart';
+import 'services/storage_service.dart';
+import 'services/sync_service.dart';
 import 'theme/app_theme.dart';
+import 'widgets/screen_guard.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await StorageService.init();
+  await NotificationService.init();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -21,6 +28,8 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => DataProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => SyncService()),
       ],
       child: const EConsultationApp(),
     ),
@@ -37,6 +46,8 @@ class EConsultationApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const SplashScreen(),
+      builder: (context, child) =>
+          ScreenGuard(child: child ?? const SizedBox()),
     );
   }
 }

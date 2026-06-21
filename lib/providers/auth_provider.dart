@@ -11,7 +11,7 @@ class AuthProvider extends ChangeNotifier {
     User(
       id: 'doc1',
       name: 'Dr. BADINI Ousmane',
-      email: 'badini@uv.gov.bf',
+      email: 'ousmane@medecin.bf',
       password: 'doctor123',
       role: UserRole.doctor,
       phone: '70 11 22 33 44',
@@ -22,7 +22,7 @@ class AuthProvider extends ChangeNotifier {
     User(
       id: 'doc2',
       name: 'Dr. KABORE Issa',
-      email: 'kabore@uv.gov.bf',
+      email: 'issa@medecin.bf',
       password: 'doctor123',
       role: UserRole.doctor,
       phone: '76 22 33 44 55',
@@ -33,7 +33,7 @@ class AuthProvider extends ChangeNotifier {
     User(
       id: 'doc3',
       name: 'Dr. SAWADOGO Maurice',
-      email: 'sawadogo.m@uv.gov.bf',
+      email: 'maurice@medecin.bf',
       password: 'doctor123',
       role: UserRole.doctor,
       phone: '65 33 44 55 66',
@@ -44,7 +44,7 @@ class AuthProvider extends ChangeNotifier {
     User(
       id: 'doc4',
       name: 'Dr. SAWADOGO Marcel',
-      email: 'sawadogo.ma@uv.gov.bf',
+      email: 'marcel@medecin.bf',
       password: 'doctor123',
       role: UserRole.doctor,
       phone: '74 44 55 66 77',
@@ -52,11 +52,11 @@ class AuthProvider extends ChangeNotifier {
       rating: 4.7,
       experienceYears: 9,
     ),
-    // ── Patients — noms burkinabè ──
+    // ── Patients ──
     User(
       id: 'pat1',
-      name: 'NIKIEMA Wendinpuiré',
-      email: 'nikiema@uv.gov.bf',
+      name: 'NIKIEMA Lebian',
+      email: 'lebian@patient.bf',
       password: 'patient123',
       role: UserRole.patient,
       phone: '70 55 66 77 88',
@@ -64,7 +64,7 @@ class AuthProvider extends ChangeNotifier {
     User(
       id: 'pat2',
       name: 'OUEDRAOGO Moussa',
-      email: 'ouedraogo@uv.gov.bf',
+      email: 'moussa@patient.bf',
       password: 'patient123',
       role: UserRole.patient,
       phone: '76 66 77 88 99',
@@ -72,7 +72,7 @@ class AuthProvider extends ChangeNotifier {
     User(
       id: 'pat3',
       name: 'BELEM Issa',
-      email: 'belem@uv.gov.bf',
+      email: 'belem@patient.bf',
       password: 'patient123',
       role: UserRole.patient,
       phone: '65 77 88 99 00',
@@ -80,7 +80,7 @@ class AuthProvider extends ChangeNotifier {
     User(
       id: 'pat4',
       name: 'DRABO Aïssata',
-      email: 'drabo@uv.gov.bf',
+      email: 'aissata@patient.bf',
       password: 'patient123',
       role: UserRole.patient,
       phone: '74 88 99 00 11',
@@ -88,7 +88,7 @@ class AuthProvider extends ChangeNotifier {
     User(
       id: 'pat5',
       name: 'NEBIE Souleymane',
-      email: 'nebie@uv.gov.bf',
+      email: 'souleymane@patient.bf',
       password: 'patient123',
       role: UserRole.patient,
       phone: '70 99 00 11 22',

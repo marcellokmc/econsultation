@@ -34,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool get _isDoctor => widget.role == UserRole.doctor;
   String get _demoEmail =>
-      _isDoctor ? 'badini@uv.gov.bf' : 'nikiema@uv.gov.bf';
+      _isDoctor ? 'marcel@medecin.bf' : 'lebian@patient.bf';
   String get _demoPassword => _isDoctor ? 'doctor123' : 'patient123';
 
   @override

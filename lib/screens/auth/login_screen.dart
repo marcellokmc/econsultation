@@ -7,6 +7,7 @@ import '../../services/biometric_service.dart';
 import '../../services/storage_service.dart';
 import '../doctor/doctor_home_screen.dart';
 import '../patient/patient_home_screen.dart';
+import 'register_screen.dart';
 
 // Couleurs du wireframe
 const _navy = Color(0xFF0D2137);
@@ -87,6 +88,42 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
+  }
+
+  void _showForgotPassword() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Mot de passe oublié',
+          style: TextStyle(
+              fontSize: 17, fontWeight: FontWeight.w700, color: _navy),
+        ),
+        content: const Text(
+          'En mode démonstration, les mots de passe sont fixes :\n\n'
+          '• Médecin : doctor123\n'
+          '• Patient : patient123\n\n'
+          'Contactez votre administrateur pour réinitialiser votre mot de passe.',
+          style: TextStyle(fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Compris',
+                style: TextStyle(
+                    color: _navy, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _goToRegister() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+    );
   }
 
   Future<void> _login() async {
@@ -212,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: _showForgotPassword,
                       style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap),
@@ -342,7 +379,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       TextButton(
-                        onPressed: () {},
+                        onPressed: _showForgotPassword,
                         style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap),
@@ -363,15 +400,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: const Color(0xFFD0D5DD),
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: _isDoctor ? null : _goToRegister,
                         style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                        child: const Text(
+                        child: Text(
                           'Créer un compte',
                           style: TextStyle(
                             fontSize: 12,
-                            color: _navy,
+                            color: _isDoctor
+                                ? const Color(0xFFB0BAC8)
+                                : _navy,
                             fontWeight: FontWeight.w500,
                           ),
                         ),

@@ -5,11 +5,10 @@ class BiometricService {
 
   static Future<bool> isAvailable() async {
     try {
-      final canCheck = await _auth.canCheckBiometrics;
-      final isSupported = await _auth.isDeviceSupported();
-      if (!canCheck || !isSupported) return false;
-      final biometrics = await _auth.getAvailableBiometrics();
-      return biometrics.isNotEmpty;
+      // isDeviceSupported() est vrai dès que l'appareil a un verrouillage d'écran
+      // (PIN, schéma ou biométrie). biometricOnly:false dans authenticate() permet
+      // le fallback PIN — donc pas besoin d'un capteur biométrique inscrit.
+      return await _auth.isDeviceSupported();
     } catch (_) {
       return false;
     }

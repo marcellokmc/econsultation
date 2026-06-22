@@ -12,7 +12,8 @@ class ProfilScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final user = auth.currentUser!;
+    final user = auth.currentUser;
+    if (user == null) return const SizedBox.shrink();
     final isDoctor = user.isDoctor;
     final color = isDoctor ? AppColors.primary : AppColors.accent;
     final consentDate = StorageService.consentDate;

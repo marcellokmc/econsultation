@@ -1,0 +1,1 @@
+{ "name": "grenier-pro", "version": "1.0.0", "private": true, "type": "module", "description": "Grenier Pro — gestion, traçabilité et coopérative", "engines": { "node": ">=22.13" } }

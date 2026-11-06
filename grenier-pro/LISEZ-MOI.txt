@@ -1,0 +1,86 @@
+==============================================================
+  GRENIER PRO  -  Gestion, traçabilité et coopérative
+==============================================================
+
+LANCER GRENIER
+--------------
+Double-cliquez sur l'icône "Grenier Pro" du Bureau (ou Menu Démarrer > Grenier Pro).
+Une fenêtre se réduit dans la barre des tâches : c'est le moteur de Grenier,
+NE LA FERMEZ PAS pendant que vous travaillez. Le navigateur s'ouvre tout seul
+sur http://localhost:3000.
+Pour arrêter Grenier : fermez cette fenêtre.
+
+PREMIÈRE UTILISATION
+--------------------
+Grenier vous propose de créer votre espace : nom de l'entreprise, votre nom,
+adresse e-mail, mot de passe. C'est le compte du PROPRIÉTAIRE : notez ce mot de passe.
+Puis, dans l'ordre : Paramètres (IFU, RCCM, TVA) > Stock (articles) > Coopérative
+(membres, livraisons, paiements) > Production > Ventes > Traçabilité.
+
+ESSAYER SANS RISQUE
+-------------------
+Menu Démarrer > Grenier Pro (démonstration) : une entreprise fictive avec 4 mois
+d'activité (owner@grenier.test / password), séparée de vos vraies données.
+
+VOS DONNÉES
+-----------
+Dossier :  Documents\Grenier Pro (donnees)
+ - grenier.db : toutes vos données.
+ - sauvegardes : une copie automatique chaque jour (30 jours conservés).
+Une copie sur le même ordinateur ne protège pas d'une panne ou d'un vol :
+dans Paramètres > Sauvegarde, cliquez sur "Télécharger une sauvegarde" chaque semaine
+et gardez le fichier AILLEURS (clé USB, e-mail, cloud).
+
+Restaurer une sauvegarde : fermez Grenier ; dans le dossier de données renommez
+grenier.db en grenier-ancien.db ; copiez votre sauvegarde à côté et nommez-la grenier.db ;
+relancez Grenier.
+
+TRAVAILLER À PLUSIEURS (même bureau, même réseau)
+-------------------------------------------------
+Grenier est installé sur UN ordinateur (le poste principal, allumé pendant le travail).
+Au démarrage, la fenêtre affiche "Sur le réseau local : http://192.168.x.x:3000" :
+les autres ordinateurs ou téléphones du réseau ouvrent cette adresse dans leur navigateur.
+Windows demande une autorisation réseau au premier lancement : cliquez sur "Autoriser".
+Le propriétaire crée les comptes dans Paramètres > Équipe (gérant, magasinier,
+comptable, agent coopérative).
+
+RÉGLAGES (facultatif)
+--------------------
+Menu Démarrer > Grenier Pro > Réglages : ouvre le fichier reglages.json.
+  "port"            : numéro d'accès (3000 par défaut) ; changez-le si 3000 est pris.
+  "reseau"          : true = les autres ordinateurs du bureau peuvent se connecter ;
+                      false = seulement cet ordinateur.
+  "dossier_donnees" : dossier des données ("" = Documents\Grenier Pro (donnees)).
+                      Exemple : "D:\\Grenier\\donnees" (doubler les barres \).
+Enregistrez puis relancez Grenier.
+
+UTILISER SUR TÉLÉPHONE OU COMME UNE APPLICATION
+-----------------------------------------------
+Dans Chrome ou Edge (ordinateur ou Android), ouvrez l'adresse de Grenier : un bouton
+"Installer" apparaît dans la barre d'adresse (ou menu > "Installer Grenier Pro").
+L'application s'ouvre alors dans sa propre fenêtre, comme un logiciel.
+Sur iPhone : Safari > Partager > "Sur l'écran d'accueil".
+(Le poste principal doit rester allumé : les données restent sur cet ordinateur.)
+
+MISE À JOUR / DÉSINSTALLATION
+-----------------------------
+Mise à jour : lancez le nouvel installateur par-dessus l'ancien. Vos données sont conservées.
+Désinstallation : Paramètres Windows > Applications > Grenier Pro.
+Vos données (dossier Documents) ne sont PAS supprimées.
+
+MOT DE PASSE OUBLIÉ
+-------------------
+Un utilisateur : le propriétaire lui en donne un nouveau (Paramètres > Équipe).
+Le propriétaire : voir docs\GUIDE-ADMIN.md (commande "mot-de-passe").
+
+PROBLÈMES COURANTS
+------------------
+- "Port 3000 déjà utilisé" : Grenier est déjà ouvert (cherchez la fenêtre réduite).
+- La page ne s'ouvre pas : tapez http://localhost:3000 dans le navigateur.
+- Les autres ordinateurs ne se connectent pas : même réseau ? Pare-feu autorisé ?
+  Utilisez l'adresse "Sur le réseau local" affichée dans la fenêtre.
+- Windows affiche "Windows a protégé votre ordinateur" à l'installation : c'est une
+  vérification de réputation de Windows (le fichier est récent et peu connu), pas un virus.
+  Cliquez sur "Informations complémentaires" puis "Exécuter quand même".
+  Pour vérifier que votre fichier est authentique, comparez son empreinte SHA-256
+  avec celle publiée par votre fournisseur (voir docs\AVERTISSEMENT-WINDOWS.md).

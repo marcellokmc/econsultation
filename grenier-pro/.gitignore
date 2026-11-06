@@ -4,4 +4,5 @@ data/
 *.db-*
 windows/node/
 dist/
-*.pem
+*privee*.pem
+cle-privee*

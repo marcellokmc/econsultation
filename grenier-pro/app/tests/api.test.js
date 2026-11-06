@@ -266,7 +266,8 @@ test('édition locale : l’inscription se ferme après la création du premier 
   const t = await boot('local');
   assert.equal((await t.call('GET', '/api/public/info')).json.needs_setup, true);
   const r = await t.call('POST', '/api/auth/register', { company_name: 'Ma coopérative', name: 'Directeur', email: 'dir@test.dev', password: 'motdepasse1' });
-  assert.equal(r.status, 201); assert.equal(r.json.company.subscription_status, 'active'); assert.equal(r.json.company.writable, true);
+  // 1.1 : sans licence, l'édition installée démarre en essai (60 jours), utilisable normalement
+  assert.equal(r.status, 201); assert.equal(r.json.company.subscription_status, 'trial'); assert.equal(r.json.company.writable, true);
   assert.equal((await t.call('GET', '/api/public/info')).json.needs_setup, false);
   assert.equal((await t.call('POST', '/api/auth/register', { company_name: 'Intrus', name: 'X', email: 'x@test.dev', password: 'motdepasse1' })).status, 403);
   await t.close();

@@ -37,7 +37,8 @@ const LABEL = { name: 'nom', email: 'adresse e-mail', password: 'mot de passe', 
 const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v));
 
 /**
- * rules : { champ: { required, type: 'string'|'number'|'integer'|'date'|'bool'|'email', max, min, gt, in: [...] } }
+ * rules : { champ: { required, type: 'string'|'number'|'integer'|'date'|'bool'|'email', max, min, gt, in: [...], past } }
+ * past (dates) : refuse une date future.
  * Retourne uniquement les champs déclarés, convertis. Lève une erreur 422 si invalide.
  */
 export function validate(body, rules, { partial = false } = {}) {
@@ -69,6 +70,8 @@ export function validate(body, rules, { partial = false } = {}) {
     } else if (type === 'date') {
       v = String(v).slice(0, 10);
       if (!isDate(v)) errors[f] = [`Le champ « ${label} » doit être une date valide.`];
+      // Une opération (livraison, paiement, vente…) ne peut pas être datée dans le futur (1 jour de marge pour les fuseaux horaires).
+      else if (r.past && v > addDays(today(), 1)) errors[f] = [`Le champ « ${label} » ne peut pas être une date future.`];
     } else if (type === 'bool') {
       v = v === true || v === 1 || v === '1' || v === 'true';
     }

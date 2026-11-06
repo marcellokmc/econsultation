@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 
 const SCHEMA = `
@@ -83,9 +84,75 @@ CREATE TABLE IF NOT EXISTS invoice_payments (
 );
 `;
 
+/** Tables ajoutées en 1.1 (journal, messages, registre de traçabilité, réglages internes). */
+const SCHEMA_V11 = `
+CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, company_id INTEGER, user_id INTEGER, user_name TEXT,
+  action TEXT NOT NULL, entity TEXT, entity_id INTEGER, detail TEXT, ip TEXT,
+  at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS audit_company ON audit_log(company_id, id);
+CREATE TABLE IF NOT EXISTS messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, company_id INTEGER NOT NULL, channel TEXT NOT NULL DEFAULT 'sms',
+  to_phone TEXT NOT NULL, body TEXT NOT NULL, kind TEXT, ref TEXT, status TEXT NOT NULL DEFAULT 'pending',
+  attempts INTEGER NOT NULL DEFAULT 0, error TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, sent_at TEXT
+);
+CREATE INDEX IF NOT EXISTS messages_status ON messages(status, id);
+CREATE TABLE IF NOT EXISTS registry_accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL, key_hash TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS registry_lots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL REFERENCES registry_accounts(id),
+  code TEXT NOT NULL, token TEXT NOT NULL, data TEXT NOT NULL, published_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  scans INTEGER NOT NULL DEFAULT 0, last_scan_at TEXT, UNIQUE (account_id, code)
+);
+`;
+
+/** Colonnes ajoutées en 1.1 : ajoutées seulement si absentes (mise à jour sans perte des données). */
+const COLUMNS_V11 = [
+  ['deliveries', 'status', "TEXT NOT NULL DEFAULT 'active'"], ['deliveries', 'client_ref', 'TEXT'],
+  ['deliveries', 'cancel_reason', 'TEXT'], ['deliveries', 'cancelled_at', 'TEXT'], ['deliveries', 'cancelled_by', 'INTEGER'],
+  ['deliveries', 'user_id', 'INTEGER'],
+  ['member_payouts', 'status', "TEXT NOT NULL DEFAULT 'active'"], ['member_payouts', 'kind', "TEXT NOT NULL DEFAULT 'paiement'"],
+  ['member_payouts', 'reference', 'TEXT'], ['member_payouts', 'client_ref', 'TEXT'], ['member_payouts', 'cancel_reason', 'TEXT'],
+  ['member_payouts', 'cancelled_at', 'TEXT'], ['member_payouts', 'cancelled_by', 'INTEGER'], ['member_payouts', 'user_id', 'INTEGER'],
+  ['members', 'client_ref', 'TEXT'],
+  ['lots', 'public_token', 'TEXT'], ['lots', 'published_at', 'TEXT'], ['lots', 'scans', 'INTEGER NOT NULL DEFAULT 0'], ['lots', 'last_scan_at', 'TEXT'],
+  ['companies', 'sms_enabled', 'INTEGER NOT NULL DEFAULT 0'], ['companies', 'registry_key', 'TEXT'], ['companies', 'registry_slug', 'TEXT'],
+];
+
+function migrate(db) {
+  db.exec(SCHEMA_V11);
+  for (const [table, col, def] of COLUMNS_V11) {
+    const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+    if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);
+  }
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS deliveries_client_ref ON deliveries(company_id, client_ref) WHERE client_ref IS NOT NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS payouts_client_ref ON member_payouts(company_id, client_ref) WHERE client_ref IS NOT NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS members_client_ref ON members(company_id, client_ref) WHERE client_ref IS NOT NULL;
+  `);
+  // Jeton public des lots (QR vérifiable) : attribué aux lots existants
+  const missing = db.prepare('SELECT id FROM lots WHERE public_token IS NULL').all();
+  if (missing.length) {
+    const up = db.prepare('UPDATE lots SET public_token=? WHERE id=?');
+    for (const r of missing) up.run(publicToken(), r.id);
+  }
+}
+
+/** Jeton aléatoire de 10 caractères (alphabet sans caractères ambigus), imprimé dans le QR. */
+export function publicToken() {
+  const A = '23456789abcdefghjkmnpqrstuvwxyz';
+  const b = crypto.randomBytes(10);
+  return Array.from(b, (x) => A[x % A.length]).join('');
+}
+
 export function openDb(file) {
   const db = new DatabaseSync(file);
   db.exec(SCHEMA);
+  migrate(db);
   return db;
 }
 

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Grenier Terrain</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#161F52">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/extras/commun.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <div class="brand">Grenier Terrain</div>
+      <div class="sub" id="who">Collecte des livraisons</div>
+    </div>
+    <span class="sp"></span>
+    <span class="small" id="net" aria-live="polite"><span class="dot"></span> En ligne</span>
+    <button class="link" id="logout" hidden>Quitter</button>
+  </header>
+
+  <main class="wrap" id="app">
+    <!-- Connexion -->
+    <section id="v-login" class="card" hidden>
+      <h1>Connexion</h1>
+      <p class="muted">Connectez-vous une fois avec internet ou sur le réseau du bureau. Ensuite, vous pouvez saisir les livraisons <strong>sans connexion</strong> : elles partent toutes seules au retour du réseau.</p>
+      <form id="f-login">
+        <label for="l-email">Adresse e-mail</label>
+        <input id="l-email" type="email" autocomplete="username" required>
+        <label for="l-pw">Mot de passe</label>
+        <input id="l-pw" type="password" autocomplete="current-password" required>
+        <div id="login-msg"></div>
+        <p><button class="btn block" type="submit">Se connecter</button></p>
+      </form>
+    </section>
+
+    <section id="v-main" hidden>
+      <div class="tabs" role="tablist" aria-label="Sections">
+        <button role="tab" data-tab="livraison" aria-selected="true">Livraison</button>
+        <button role="tab" data-tab="membres" aria-selected="false">Membres</button>
+        <button role="tab" data-tab="attente" aria-selected="false">En attente <span id="pending-count" class="pill">0</span></button>
+        <button role="tab" data-tab="paiement" aria-selected="false" id="tab-paiement">Paiement</button>
+      </div>
+      <div id="global-msg" aria-live="polite"></div>
+
+      <!-- Nouvelle livraison -->
+      <section data-panel="livraison" class="card">
+        <h2>Nouvelle livraison</h2>
+        <form id="f-del" novalidate>
+          <label for="d-member-q">Membre <span class="hint">(nom ou village)</span></label>
+          <input id="d-member-q" type="search" autocomplete="off" placeholder="Rechercher…" aria-controls="d-member-list">
+          <ul class="list" id="d-member-list" aria-label="Membres trouvés"></ul>
+          <div id="d-member-chosen" class="msg ok" hidden></div>
+          <p><button type="button" class="btn sec small" id="btn-new-member">+ Nouveau membre</button></p>
+
+          <label for="d-item">Produit livré</label>
+          <select id="d-item" required></select>
+          <div class="row">
+            <div><label for="d-qty">Quantité <span class="hint" id="d-unit"></span></label>
+              <input id="d-qty" type="text" inputmode="decimal" required placeholder="0"></div>
+            <div><label for="d-price">Prix unitaire (FCFA)</label>
+              <input id="d-price" type="text" inputmode="numeric" required></div>
+          </div>
+          <label>Qualité</label>
+          <div class="seg" role="group" aria-label="Qualité">
+            <button type="button" data-q="A" aria-pressed="true">A</button>
+            <button type="button" data-q="B" aria-pressed="false">B</button>
+            <button type="button" data-q="C" aria-pressed="false">C</button>
+          </div>
+          <div class="row">
+            <div><label for="d-date">Date</label><input id="d-date" type="date" required></div>
+          </div>
+          <label for="d-note">Remarque <span class="hint">(facultatif)</span></label>
+          <input id="d-note" type="text" maxlength="200">
+          <p class="big num" id="d-total" aria-live="polite">0 FCFA</p>
+          <div id="del-msg"></div>
+          <button class="btn block" type="submit">Enregistrer la livraison</button>
+        </form>
+      </section>
+
+      <!-- Reçu provisoire -->
+      <section data-panel="recu" class="card" hidden>
+        <h2>Livraison enregistrée</h2>
+        <div id="recu-body"></div>
+        <div class="row no-print" style="margin-top:12px">
+          <button class="btn" id="btn-next">Livraison suivante</button>
+          <button class="btn sec" onclick="window.print()">Imprimer</button>
+        </div>
+      </section>
+
+      <!-- Nouveau membre -->
+      <section data-panel="nouveau-membre" class="card" hidden>
+        <h2>Nouveau membre</h2>
+        <form id="f-mem">
+          <label for="m-name">Nom et prénom</label><input id="m-name" required maxlength="120">
+          <label for="m-village">Village</label><input id="m-village" maxlength="120">
+          <label for="m-phone">Téléphone <span class="hint">(pour les reçus par SMS)</span></label><input id="m-phone" type="tel" inputmode="tel" maxlength="30">
+          <label for="m-group">Groupement</label><input id="m-group" maxlength="120">
+          <div class="row" style="margin-top:14px"><button class="btn" type="submit">Ajouter</button><button class="btn sec" type="button" id="btn-mem-cancel">Annuler</button></div>
+        </form>
+      </section>
+
+      <!-- Membres -->
+      <section data-panel="membres" class="card" hidden>
+        <h2>Membres</h2>
+        <input id="m-q" type="search" placeholder="Rechercher un membre…" aria-label="Rechercher un membre">
+        <p class="small muted" id="m-asof"></p>
+        <ul class="list" id="m-list"></ul>
+        <div id="m-detail"></div>
+      </section>
+
+      <!-- File d'attente -->
+      <section data-panel="attente" class="card" hidden>
+        <h2>En attente d'envoi</h2>
+        <p class="muted small" id="sync-info"></p>
+        <p><button class="btn" id="btn-sync">Envoyer maintenant</button></p>
+        <ul class="list" id="q-list"></ul>
+      </section>
+
+      <!-- Paiement (connexion requise) -->
+      <section data-panel="paiement" class="card" hidden>
+        <h2>Payer un membre</h2>
+        <p class="msg warn">Un paiement exige une connexion (pour éviter de payer deux fois). Le montant ne peut pas dépasser ce qui est dû au membre.</p>
+        <form id="f-pay" novalidate>
+          <label for="p-member">Membre</label>
+          <select id="p-member" required></select>
+          <p id="p-balance" class="muted"></p>
+          <label for="p-amount">Montant (FCFA)</label><input id="p-amount" inputmode="numeric" required>
+          <label for="p-method">Moyen de paiement</label>
+          <select id="p-method"><option>Espèces</option><option>Orange Money</option><option>Moov Money</option><option>Coris Money</option><option>Virement</option></select>
+          <div id="p-ref-wrap"><label for="p-ref">Référence de la transaction <span class="hint">(numéro du SMS de confirmation)</span></label><input id="p-ref" maxlength="80"></div>
+          <div id="p-adv-wrap" hidden><label><input type="checkbox" id="p-adv" style="width:auto;min-height:0"> Avance (le membre devra la rembourser sur ses prochaines livraisons)</label></div>
+          <div id="pay-msg"></div>
+          <button class="btn block" type="submit">Enregistrer le paiement</button>
+        </form>
+      </section>
+    </section>
+  </main>
+  <script src="app.js" type="module"></script>
+</body>
+</html>

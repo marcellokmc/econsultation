@@ -1,4 +1,5 @@
 import { biz, r3, today, addDays, monthsBack } from './lib.js';
+import { publicToken } from './db.js';
 
 export const PLANS = {
   starter: { label: 'Starter', max_users: 3, coop: false },
@@ -9,7 +10,10 @@ const nf = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 3 });
 const rnd = (x) => Math.round(x);
 const daysUntil = (s) => { const [y, m, d] = s.split('-').map(Number); return Math.round((new Date(y, m - 1, d) - new Date(new Date().toDateString())) / 864e5); };
 
-export function makeServices(db, tx) {
+/**
+ * hooks (facultatif) : { message(cid, phone, body, kind, ref) } — appelé dans la transaction pour mettre un SMS en file d'attente.
+ */
+export function makeServices(db, tx, hooks = {}) {
   const all = (sql, ...p) => db.prepare(sql).all(...p).map((r) => ({ ...r }));
   const get = (sql, ...p) => { const r = db.prepare(sql).get(...p); return r ? { ...r } : null; };
   const run = (sql, ...p) => db.prepare(sql).run(...p);
@@ -48,9 +52,9 @@ export function makeServices(db, tx) {
   }
   function createLot(cid, uid, item, d, type = 'entree') {
     const code = nextLotCode(cid, item, d.date);
-    const r = run(`INSERT INTO lots(company_id,item_id,code,received_on,qty_initial,qty_remaining,unit_cost,expires_on,origin_type,member_id,supplier_name,production_id)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`, cid, item.id, code, d.date, r3(d.qty), r3(d.qty), d.unit_cost ?? 0, d.expires_on ?? null,
-      d.origin_type, d.member_id ?? null, d.supplier_name ?? null, d.production_id ?? null);
+    const r = run(`INSERT INTO lots(company_id,item_id,code,received_on,qty_initial,qty_remaining,unit_cost,expires_on,origin_type,member_id,supplier_name,production_id,public_token)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, cid, item.id, code, d.date, r3(d.qty), r3(d.qty), d.unit_cost ?? 0, d.expires_on ?? null,
+      d.origin_type, d.member_id ?? null, d.supplier_name ?? null, d.production_id ?? null, publicToken());
     const lot = get('SELECT * FROM lots WHERE id=?', lastId(r));
     move(cid, uid, lot, type, d.qty, d.date, code);
     return lot;
@@ -230,60 +234,117 @@ export function makeServices(db, tx) {
   }
 
   // =================== coopérative ===================
+  const fcfa = (n) => nf.format(Math.round(n)).replace(/ | /g, ' ');
+  const companyName = (cid) => get('SELECT name FROM companies WHERE id=?', cid)?.name ?? '';
+  /** Solde d'un membre = livraisons valides − paiements valides (négatif = avance consentie au membre). */
+  const memberBalance = (mid) => sumOf("SELECT SUM(amount) s FROM deliveries WHERE member_id=? AND status='active'", mid)
+    - sumOf("SELECT SUM(amount) s FROM member_payouts WHERE member_id=? AND status='active'", mid);
+  const message = (cid, phone, body, kind, ref) => { if (phone && hooks.message) hooks.message(cid, phone, body, kind, ref); };
+
   function createDelivery(cid, uid, d) {
     return tx(() => {
+      if (d.client_ref) {
+        const dup = get('SELECT id FROM deliveries WHERE company_id=? AND client_ref=?', cid, d.client_ref);
+        if (dup) return { ...deliveryView(cid, dup.id), duplicate: true }; // déjà reçue (synchronisation répétée)
+      }
       const m = must(get('SELECT * FROM members WHERE id=? AND company_id=?', d.member_id, cid), 'Membre');
+      if (!m.active) throw biz('Ce membre est désactivé.');
       const item = rawItem(cid, d.item_id);
       if (item.kind !== 'mp') throw biz('Une livraison concerne une matière première.');
       const lot = createLot(cid, uid, item, { date: d.delivered_on, qty: d.qty, unit_cost: d.unit_price, origin_type: 'member', member_id: m.id });
-      const r = run('INSERT INTO deliveries(company_id,member_id,item_id,lot_id,delivered_on,qty,unit_price,amount,quality,note) VALUES (?,?,?,?,?,?,?,?,?,?)',
-        cid, m.id, item.id, lot.id, d.delivered_on, d.qty, d.unit_price, rnd(d.qty * d.unit_price), d.quality || 'A', d.note ?? null);
+      const amount = rnd(d.qty * d.unit_price);
+      const r = run('INSERT INTO deliveries(company_id,member_id,item_id,lot_id,delivered_on,qty,unit_price,amount,quality,note,client_ref,user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+        cid, m.id, item.id, lot.id, d.delivered_on, d.qty, d.unit_price, amount, d.quality || 'A', d.note ?? null, d.client_ref ?? null, uid ?? null);
+      message(cid, m.phone, `${companyName(cid)}: livraison du ${d.delivered_on.split('-').reverse().join('/')} enregistree. ${nf.format(r3(d.qty))} ${item.unit} ${item.name} (qualite ${d.quality || 'A'}) = ${fcfa(amount)} FCFA. Lot ${lot.code}. Votre solde: ${fcfa(memberBalance(m.id))} FCFA.`, 'livraison', lot.code);
       return deliveryView(cid, lastId(r));
+    });
+  }
+  /** Annule une livraison saisie par erreur : seulement si son lot n'a pas encore été utilisé (production, vente, perte). */
+  function cancelDelivery(cid, uid, id, reason) {
+    return tx(() => {
+      const d = must(get('SELECT * FROM deliveries WHERE id=? AND company_id=?', id, cid), 'Livraison');
+      if (d.status === 'cancelled') throw biz('Cette livraison est déjà annulée.');
+      const lot = get('SELECT * FROM lots WHERE id=?', d.lot_id);
+      if (r3(lot.qty_remaining) !== r3(lot.qty_initial)) throw biz(`Le lot ${lot.code} a déjà été utilisé (production, vente ou perte) : la livraison ne peut plus être annulée. Enregistrez une perte ou un ajustement à la place.`);
+      run('UPDATE lots SET qty_remaining=0 WHERE id=?', lot.id);
+      move(cid, uid, lot, 'annulation', -lot.qty_remaining, today(), lot.code, reason);
+      run("UPDATE deliveries SET status='cancelled', cancel_reason=?, cancelled_at=CURRENT_TIMESTAMP, cancelled_by=? WHERE id=?", reason, uid ?? null, id);
+      const m = get('SELECT * FROM members WHERE id=?', d.member_id);
+      message(cid, m?.phone, `${companyName(cid)}: la livraison du ${d.delivered_on.split('-').reverse().join('/')} (lot ${lot.code}, ${fcfa(d.amount)} FCFA) a ete annulee. Motif: ${reason}. Votre solde: ${fcfa(memberBalance(d.member_id))} FCFA.`, 'annulation', lot.code);
+      return deliveryView(cid, id);
     });
   }
   function deliveryView(cid, id) {
     const d = must(get('SELECT * FROM deliveries WHERE id=? AND company_id=?', id, cid), 'Livraison');
     return { ...d, member: get('SELECT id,name,village FROM members WHERE id=?', d.member_id), item: get('SELECT id,name,unit,kind FROM items WHERE id=?', d.item_id), lot: get('SELECT id,code FROM lots WHERE id=?', d.lot_id) };
   }
-  const listDeliveries = (cid, memberId) => all(`SELECT id FROM deliveries WHERE company_id=? ${memberId ? 'AND member_id=?' : ''} ORDER BY delivered_on DESC, id DESC LIMIT 300`, ...(memberId ? [cid, Number(memberId)] : [cid])).map((r) => deliveryView(cid, r.id));
-  function createPayout(cid, d) {
+  /** Par défaut seules les livraisons valides ; all=true inclut les annulées (écran Contrôle). */
+  const listDeliveries = (cid, memberId, all_ = false) => all(`SELECT id FROM deliveries WHERE company_id=? ${all_ ? '' : "AND status='active'"} ${memberId ? 'AND member_id=?' : ''} ORDER BY delivered_on DESC, id DESC LIMIT 300`, ...(memberId ? [cid, Number(memberId)] : [cid])).map((r) => deliveryView(cid, r.id));
+
+  /**
+   * Paiement à un membre. Il ne peut pas dépasser le solde dû, sauf avance explicite (d.advance, propriétaire ou gérant :
+   * contrôlé par la route). Le solde du membre devient alors négatif = somme que le membre doit à la coopérative.
+   */
+  function createPayout(cid, d, uid) {
     return tx(() => {
+      if (d.client_ref) {
+        const dup = get('SELECT id FROM member_payouts WHERE company_id=? AND client_ref=?', cid, d.client_ref);
+        if (dup) return { ...payoutView(cid, dup.id), duplicate: true };
+      }
       const m = must(get('SELECT * FROM members WHERE id=? AND company_id=?', d.member_id, cid), 'Membre');
+      const balance = memberBalance(m.id);
+      if (!d.advance && d.amount > balance) {
+        throw biz(balance > 0
+          ? `Le montant dépasse ce qui est dû à ${m.name} (${fcfa(balance)} FCFA). Pour verser plus, enregistrez une avance (propriétaire ou gérant).`
+          : `Rien n'est dû à ${m.name} (solde : ${fcfa(balance)} FCFA). Pour verser de l'argent, enregistrez une avance (propriétaire ou gérant).`);
+      }
       run('UPDATE companies SET receipt_seq=receipt_seq+1 WHERE id=?', cid);
       const seq = get('SELECT receipt_seq FROM companies WHERE id=?', cid).receipt_seq;
-      const r = run('INSERT INTO member_payouts(company_id,member_id,number,paid_on,amount,method,note) VALUES (?,?,?,?,?,?,?)',
-        cid, m.id, `REC-${String(seq).padStart(4, '0')}`, d.paid_on, d.amount, d.method, d.note ?? null);
+      const number = `REC-${String(seq).padStart(4, '0')}`;
+      const r = run('INSERT INTO member_payouts(company_id,member_id,number,paid_on,amount,method,note,kind,reference,client_ref,user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+        cid, m.id, number, d.paid_on, d.amount, d.method, d.note ?? null, d.advance ? 'avance' : 'paiement', d.reference ?? null, d.client_ref ?? null, uid ?? null);
+      message(cid, m.phone, `${companyName(cid)}: ${d.advance ? 'avance' : 'paiement'} de ${fcfa(d.amount)} FCFA (${d.method}${d.reference ? ' ref ' + d.reference : ''}) le ${d.paid_on.split('-').reverse().join('/')}. Recu ${number}. Votre solde: ${fcfa(memberBalance(m.id))} FCFA.`, 'paiement', number);
       return payoutView(cid, lastId(r));
+    });
+  }
+  function cancelPayout(cid, uid, id, reason) {
+    return tx(() => {
+      const p = must(get('SELECT * FROM member_payouts WHERE id=? AND company_id=?', id, cid), 'Paiement');
+      if (p.status === 'cancelled') throw biz('Ce paiement est déjà annulé.');
+      run("UPDATE member_payouts SET status='cancelled', cancel_reason=?, cancelled_at=CURRENT_TIMESTAMP, cancelled_by=? WHERE id=?", reason, uid ?? null, id);
+      const m = get('SELECT * FROM members WHERE id=?', p.member_id);
+      message(cid, m?.phone, `${companyName(cid)}: le recu ${p.number} (${fcfa(p.amount)} FCFA) est annule. Motif: ${reason}. Votre solde: ${fcfa(memberBalance(p.member_id))} FCFA.`, 'annulation', p.number);
+      return payoutView(cid, id);
     });
   }
   function payoutView(cid, id) {
     const p = must(get('SELECT * FROM member_payouts WHERE id=? AND company_id=?', id, cid), 'Paiement');
-    return { ...p, member: get('SELECT id,name,village FROM members WHERE id=?', p.member_id) };
+    return { ...p, member: get('SELECT id,name,village,phone FROM members WHERE id=?', p.member_id) };
   }
-  const listPayouts = (cid) => all('SELECT id FROM member_payouts WHERE company_id=? ORDER BY paid_on DESC, id DESC LIMIT 300', cid).map((r) => payoutView(cid, r.id));
+  const listPayouts = (cid, all_ = false) => all(`SELECT id FROM member_payouts WHERE company_id=? ${all_ ? '' : "AND status='active'"} ORDER BY paid_on DESC, id DESC LIMIT 300`, cid).map((r) => payoutView(cid, r.id));
   function listMembers(cid, q) {
-    const rows = all(`SELECT m.*, COALESCE((SELECT SUM(qty) FROM deliveries WHERE member_id=m.id),0) AS delivered_qty,
-      COALESCE((SELECT SUM(amount) FROM deliveries WHERE member_id=m.id),0) AS delivered_amount,
-      COALESCE((SELECT SUM(amount) FROM member_payouts WHERE member_id=m.id),0) AS paid_amount
+    const rows = all(`SELECT m.*, COALESCE((SELECT SUM(qty) FROM deliveries WHERE member_id=m.id AND status='active'),0) AS delivered_qty,
+      COALESCE((SELECT SUM(amount) FROM deliveries WHERE member_id=m.id AND status='active'),0) AS delivered_amount,
+      COALESCE((SELECT SUM(amount) FROM member_payouts WHERE member_id=m.id AND status='active'),0) AS paid_amount
       FROM members m WHERE m.company_id=? ${q ? 'AND (m.name LIKE ? OR m.village LIKE ?)' : ''} ORDER BY m.name`, ...(q ? [cid, `%${q}%`, `%${q}%`] : [cid]));
     return rows.map((m) => ({ ...m, active: !!m.active, delivered_qty: r3(m.delivered_qty), balance: m.delivered_amount - m.paid_amount }));
   }
   function memberDetail(cid, id) {
     const member = must(listMembers(cid).find((m) => m.id === id), 'Membre');
-    const deliveries = all('SELECT d.*, i.name AS iname, i.unit AS iunit, l.code AS lcode FROM deliveries d JOIN items i ON i.id=d.item_id JOIN lots l ON l.id=d.lot_id WHERE d.member_id=? ORDER BY d.delivered_on DESC, d.id DESC', id)
+    const deliveries = all("SELECT d.*, i.name AS iname, i.unit AS iunit, l.code AS lcode FROM deliveries d JOIN items i ON i.id=d.item_id JOIN lots l ON l.id=d.lot_id WHERE d.member_id=? AND d.status='active' ORDER BY d.delivered_on DESC, d.id DESC", id)
       .map(({ iname, iunit, lcode, ...d }) => ({ ...d, item: { name: iname, unit: iunit }, lot: { code: lcode } }));
-    const payouts = all('SELECT * FROM member_payouts WHERE member_id=? ORDER BY paid_on DESC, id DESC', id);
+    const payouts = all("SELECT * FROM member_payouts WHERE member_id=? AND status='active' ORDER BY paid_on DESC, id DESC", id);
     const amount = deliveries.reduce((s, d) => s + d.amount, 0), paid = payouts.reduce((s, p) => s + p.amount, 0);
     return { member, deliveries, payouts, totals: { qty: r3(deliveries.reduce((s, d) => s + d.qty, 0)), amount, paid, balance: amount - paid } };
   }
   function coopStats(cid, days) {
     const from = days ? addDays(today(), -days) : null;
-    const deliveries = all(`SELECT d.*, m.village FROM deliveries d JOIN members m ON m.id=d.member_id WHERE d.company_id=? ${from ? 'AND d.delivered_on>=?' : ''}`, ...(from ? [cid, from] : [cid]));
-    const payouts = all(`SELECT * FROM member_payouts WHERE company_id=? ${from ? 'AND paid_on>=?' : ''}`, ...(from ? [cid, from] : [cid]));
+    const deliveries = all(`SELECT d.*, m.village FROM deliveries d JOIN members m ON m.id=d.member_id WHERE d.company_id=? AND d.status='active' ${from ? 'AND d.delivered_on>=?' : ''}`, ...(from ? [cid, from] : [cid]));
+    const payouts = all(`SELECT * FROM member_payouts WHERE company_id=? AND status='active' ${from ? 'AND paid_on>=?' : ''}`, ...(from ? [cid, from] : [cid]));
     const members = listMembers(cid);
     const byVillage = {};
     deliveries.forEach((d) => { const v = d.village || 'Non renseigné'; byVillage[v] = (byVillage[v] || 0) + d.qty; });
-    const allDel = all('SELECT delivered_on, qty FROM deliveries WHERE company_id=?', cid);
+    const allDel = all("SELECT delivered_on, qty FROM deliveries WHERE company_id=? AND status='active'", cid);
     return {
       members_count: members.length,
       active_members: new Set(deliveries.map((d) => d.member_id)).size,
@@ -291,6 +352,7 @@ export function makeServices(db, tx) {
       delivered_amount: deliveries.reduce((s, d) => s + d.amount, 0),
       paid_amount: payouts.reduce((s, p) => s + p.amount, 0),
       outstanding: members.reduce((s, m) => s + Math.max(m.balance, 0), 0),
+      advances: members.reduce((s, m) => s + Math.max(-m.balance, 0), 0),
       by_village: Object.entries(byVillage).map(([village, qty]) => ({ village, qty: r3(qty) })).sort((a, b) => b.qty - a.qty).slice(0, 6),
       monthly: monthsBack(6).map((mo) => ({ month: mo, qty: r3(allDel.filter((d) => d.delivered_on.startsWith(mo)).reduce((s, d) => s + d.qty, 0)) })),
       top_balances: members.filter((m) => m.balance > 0).sort((a, b) => b.balance - a.balance).slice(0, 10).map((m) => ({ member_id: m.id, name: m.name, village: m.village, balance: m.balance })),
@@ -310,11 +372,14 @@ export function makeServices(db, tx) {
       if (d <= 30) alerts.push({ type: d < 0 ? 'expired' : 'expiring', lot: l.code, message: d < 0 ? `Lot ${l.code} périmé` : `Lot ${l.code} : date limite dans ${d} j` });
     }
     late.forEach((i) => alerts.push({ type: 'late_invoice', message: `Facture ${i.number} en retard : ${nf.format(i.balance)} FCFA` }));
+    const adv = listMembers(cid).filter((m) => m.balance < 0);
+    if (adv.length) alerts.push({ type: 'member_advance', message: `${adv.length} membre(s) doivent de l'argent à la coopérative (avances) : ${nf.format(adv.reduce((s, m) => s - m.balance, 0))} FCFA` });
     return {
       sales_month_ttc: month.reduce((s, i) => s + i.total_ttc, 0), sales_month_count: month.length,
       receivables: invs.reduce((s, i) => s + i.balance, 0), late_count: late.length,
       stock_value: rnd(sumOf('SELECT SUM(qty_remaining*unit_cost) s FROM lots WHERE company_id=? AND qty_remaining>0', cid)),
       owed_to_members: listMembers(cid).reduce((s, m) => s + Math.max(m.balance, 0), 0),
+      advances_to_members: listMembers(cid).reduce((s, m) => s + Math.max(-m.balance, 0), 0),
       sales_monthly: monthsBack(6).map((mo) => ({ month: mo, ht: invs.filter((i) => i.issued_on.startsWith(mo)).reduce((s, i) => s + i.total_ht, 0) })),
       alerts: alerts.slice(0, 12),
     };
@@ -371,9 +436,12 @@ export function makeServices(db, tx) {
     };
   }
   /** Texte encodé dans le QR : adresse du site du client si renseignée, sinon les informations du lot (lisibles sans internet). */
-  function qrPayload(company, raw) {
-    const base = (company.trace_base_url || '').trim();
-    if (base) return base.replace(/\/+$/, '') + '/' + encodeURIComponent(raw.code);
+  function qrPayload(company, raw, publicUrl) {
+    const base = (company.trace_base_url || '').trim().replace(/\/+$/, '');
+    // QR vérifiable : registre Grenier Trace (entreprise reliée au registre) ou serveur hébergé avec adresse publique
+    const verifyBase = company.registry_key && base ? base : publicUrl ? publicUrl.replace(/\/+$/, '') : null;
+    if (verifyBase && raw.public_token) return `${verifyBase}/v/${encodeURIComponent((company.registry_key && company.registry_slug) || company.slug)}/${encodeURIComponent(raw.code)}/${raw.public_token}`;
+    if (base) return base + '/' + encodeURIComponent(raw.code);
     const item = get('SELECT * FROM items WHERE id=?', raw.item_id);
     const pub = publicTrace(company, raw.code);
     const lines = [`LOT ${raw.code}`, item.name, `Producteur : ${company.name}`, `${item.kind === 'pf' ? 'Fabriqué' : 'Reçu'} le ${raw.received_on.split('-').reverse().join('/')}`];
@@ -386,7 +454,7 @@ export function makeServices(db, tx) {
     all, get, run, lastId, tx, must, notFound,
     listItems, getItem, rawItem, createLot, receipt, loss, lotView, listLots, listMovements, hydrateLots,
     createProduction, listProductions, createInvoice, cancelInvoice, addPayment, listInvoices, invoiceFull, listCustomers,
-    createDelivery, listDeliveries, createPayout, listPayouts, payoutView, listMembers, memberDetail, coopStats,
+    createDelivery, cancelDelivery, listDeliveries, createPayout, cancelPayout, listPayouts, payoutView, listMembers, memberDetail, coopStats, memberBalance,
     dashboard, trace, publicTrace, qrPayload,
   };
 }

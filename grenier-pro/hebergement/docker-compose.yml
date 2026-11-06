@@ -1,0 +1,29 @@
+# Lancement :  cp .env.exemple .env  (puis le modifier)  &&  docker compose up -d --build
+services:
+  grenier:
+    build: { context: .., dockerfile: hebergement/Dockerfile }
+    restart: unless-stopped
+    environment:
+      GRENIER_PUBLIC_URL: https://${DOMAINE}
+      # SMS (facultatif) : voir docs/MISE-EN-SERVICE.md ; le fichier reglages.json est lu dans /config
+      GRENIER_CONFIG: /config/reglages.json
+    volumes:
+      - grenier-data:/data
+      - ./config:/config:ro
+    expose: ["3000"]
+  caddy:
+    image: caddy:2.8.4
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAINE: ${DOMAINE}
+      EMAIL_ADMIN: ${EMAIL_ADMIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [grenier]
+volumes:
+  grenier-data:
+  caddy-data:
+  caddy-config:

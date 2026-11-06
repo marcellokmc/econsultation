@@ -17,6 +17,18 @@ adresse e-mail, mot de passe. C'est le compte du PROPRIÉTAIRE : notez ce mot de
 Puis, dans l'ordre : Paramètres (IFU, RCCM, TVA) > Stock (articles) > Coopérative
 (membres, livraisons, paiements) > Production > Ventes > Traçabilité.
 
+NOUVEAU DANS LA VERSION 1.1
+---------------------------
+- TERRAIN (menu Terrain, ou http://<adresse>/terrain/ sur un téléphone) : les agents
+  saisissent les livraisons des membres, même sans connexion ; tout part au retour du réseau.
+- CONTRÔLE (menu Contrôle, propriétaire et gérant) : annuler une livraison ou un paiement
+  saisi par erreur (avec un motif), accorder une avance, consulter le journal des actions,
+  activer les reçus par SMS, relier les QR codes au registre en ligne, saisir la licence.
+- Un paiement à un membre ne peut plus dépasser ce qui lui est dû (sauf avance).
+- Une opération ne peut plus être datée dans le futur.
+- LICENCE : sans licence, Grenier fonctionne 60 jours en essai, puis passe en lecture seule
+  (consultation possible, plus de saisie). Collez la licence reçue dans Contrôle > Licence.
+
 ESSAYER SANS RISQUE
 -------------------
 Menu Démarrer > Grenier Pro (démonstration) : une entreprise fictive avec 4 mois
@@ -62,11 +74,24 @@ L'application s'ouvre alors dans sa propre fenêtre, comme un logiciel.
 Sur iPhone : Safari > Partager > "Sur l'écran d'accueil".
 (Le poste principal doit rester allumé : les données restent sur cet ordinateur.)
 
+Pour les agents de collecte : ouvrez http://<adresse du poste>:3000/terrain/ sur leur téléphone,
+connectez-vous une fois au bureau. Ils peuvent ensuite saisir sans réseau : les livraisons
+attendent sur le téléphone et partent dès qu'il retrouve le réseau du bureau.
+IMPORTANT : sur le réseau local, NE FERMEZ PAS l'onglet Terrain pendant la tournée (sans
+HTTPS, le téléphone ne peut pas rouvrir la page hors ligne). Avec la version hébergée (https),
+l'application se rouvre même sans réseau.
+
 MISE À JOUR / DÉSINSTALLATION
 -----------------------------
 Mise à jour : lancez le nouvel installateur par-dessus l'ancien. Vos données sont conservées.
 Désinstallation : Paramètres Windows > Applications > Grenier Pro.
 Vos données (dossier Documents) ne sont PAS supprimées.
+
+MISE À JOUR DEPUIS LA VERSION 1.0
+---------------------------------
+Les données sont reprises automatiquement (aucune perte). Si la version 1.0 a été installée
+dans un autre dossier, désinstallez-la d'abord (Paramètres Windows > Applications) : vos données
+dans Documents ne sont pas touchées. Pensez à demander votre licence à votre fournisseur.
 
 MOT DE PASSE OUBLIÉ
 -------------------

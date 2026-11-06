@@ -8,6 +8,10 @@ import { openDb, makeTx } from './db.js';
 import { makeServices } from './services.js';
 import { buildRoutes } from './routes.js';
 import { HttpError, sha, today } from './lib.js';
+import { makeMessenger } from './notify.js';
+import { makeRegistry, verifyPage } from './registry.js';
+import { applyLicence, installLicence } from './licence.js';
+import { AUDIT_LABELS, auditDetail } from './audit.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const APP_DIR = path.resolve(here, '..');
@@ -30,7 +34,10 @@ function openBrowser(url) {
   } catch { /* sans importance */ }
 }
 
-/** Démarre Grenier Pro. Options : { dataDir, port, host, mode, quiet } — utilisé aussi par les tests. */
+/**
+ * Démarre Grenier Pro. Options : { dataDir, port, host, mode, backups, demo, licence, sms, publicUrl, timers } — utilisé aussi par les tests.
+ * licence:false désactive le contrôle de licence (tests) ; demo:true aussi (base de démonstration).
+ */
 export function startServer(opts = {}) {
   // Ordre de priorité : options > variables d'environnement > fichier reglages.json > valeurs par défaut
   const cfg = loadSettings();
@@ -43,8 +50,19 @@ export function startServer(opts = {}) {
 
   const db = openDb(path.join(dataDir, 'grenier.db'));
   const tx = makeTx(db);
-  const S = makeServices(db, tx);
-  const { routes, RULE, isWritable } = buildRoutes({ S, mode });
+  const messenger = makeMessenger(db, opts.sms ?? cfg.sms ?? {});
+  const S = makeServices(db, tx, { message: messenger.enqueue });
+  const registry = makeRegistry({ db, S });
+  const publicUrl = opts.publicUrl ?? (process.env.GRENIER_PUBLIC_URL || cfg.adresse_publique || null);
+  // Licence : édition installée uniquement (pas en démonstration, pas en mode hébergé)
+  const licensed = mode === 'local' && !opts.demo && opts.licence !== false && process.env.GRENIER_LICENCE !== 'off';
+  let licenceStatus = licensed ? applyLicence(db) : null;
+  const licence = licensed ? {
+    status: () => (licenceStatus = applyLicence(db)),
+    install: (text) => { const r = installLicence(db, text); if (r.ok) licenceStatus = r.status; return r; },
+  } : null;
+  const afterRegister = () => { if (licensed) licenceStatus = applyLicence(db); };
+  const { routes, RULE, isWritable } = buildRoutes({ S, mode, x: { messenger, registry, licence, publicUrl, afterRegister } });
 
   db.exec("DELETE FROM tokens WHERE created_at < datetime('now','-30 days')"); // sessions expirées
 
@@ -62,6 +80,15 @@ export function startServer(opts = {}) {
   if (opts.backups !== false) { try { backup(); } catch (e) { console.error('Sauvegarde impossible :', e.message); } }
   const timer = opts.backups !== false ? setInterval(() => { try { backup(); } catch { /* ignoré */ } }, 24 * 3600 * 1000) : null;
   timer?.unref();
+  // Tâches de fond : SMS en attente (chaque minute), publication des lots vers le registre (toutes les 10 minutes), licence (chaque heure)
+  const jobs = [];
+  if (opts.timers !== false) {
+    jobs.push(setInterval(() => { messenger.flush().catch(() => {}); }, 60 * 1000));
+    jobs.push(setInterval(() => { registry.publish().catch(() => {}); }, 10 * 60 * 1000));
+    jobs.push(setTimeout(() => { registry.publish().catch(() => {}); }, 20 * 1000));
+    if (licensed) jobs.push(setInterval(() => { try { licenceStatus = applyLicence(db); } catch { /* ignoré */ } }, 3600 * 1000));
+    jobs.forEach((j) => j.unref());
+  }
 
   // ---------- limitation des tentatives (connexion / inscription) ----------
   const hits = new Map();
@@ -105,26 +132,48 @@ export function startServer(opts = {}) {
     if (route.opts.limit && limited(ip)) throw new HttpError(429, 'Trop de tentatives. Réessayez dans une minute.');
     const m = url.pathname.match(route.re);
     const params = Object.fromEntries(route.keys.map((k, i) => [k, m[i + 1]]));
-    const ctx = { params, query: Object.fromEntries(url.searchParams), body: req.method === 'GET' ? {} : await readBody(req) };
+    const ctx = { params, query: Object.fromEntries(url.searchParams), headers: req.headers, body: req.method === 'GET' ? {} : await readBody(req) };
     if (!route.opts.public) {
       Object.assign(ctx, authenticate(req));
-      if (req.method !== 'GET' && !isWritable(ctx.company)) throw new HttpError(402, "Votre abonnement est expiré : l'application est en lecture seule. Contactez-nous pour le renouveler.", undefined, { code: 'subscription_expired' });
+      if (req.method !== 'GET' && !route.opts.always && !isWritable(ctx.company)) throw new HttpError(402, "Votre abonnement est expiré : l'application est en lecture seule. Contactez-nous pour le renouveler.", undefined, { code: 'subscription_expired' });
       if (route.opts.feature && !require_feature(ctx.company, route.opts.feature)) throw new HttpError(403, "Ce module n'est pas inclus dans votre offre.", undefined, { code: 'feature_unavailable' });
       if (route.opts.roles && !route.opts.roles.includes(ctx.user.role)) throw new HttpError(403, 'Action non autorisée pour votre rôle.');
     }
-    const out = route.handler(ctx);
+    let out;
+    try {
+      out = await route.handler(ctx);
+    } catch (e) {
+      if (route.path === '/api/auth/login' && e.status === 422) audit(null, null, 'Connexion refusée', ctx, ip);
+      throw e;
+    }
+    if (req.method !== 'GET' && route.path !== '/api/registry/lots') {
+      const label = AUDIT_LABELS[`${req.method} ${route.path}`] || `${req.method} ${route.path}`;
+      if (route.path === '/api/auth/login' || route.path === '/api/auth/register') audit(out?.body?.company?.id ?? out?.company?.id, out?.body?.user ?? out?.user, label, ctx, ip);
+      else if (ctx.user) audit(ctx.company.id, ctx.user, label, ctx, ip, out);
+    }
     if (out === null || out === undefined) return send(res, 204, '');
     if (out.raw !== undefined) return send(res, 200, out.raw, { 'Content-Type': out.type, ...(out.headers || {}) });
     if (out.status && out.body !== undefined) return send(res, out.status, out.body);
     if (out.body !== undefined && out.headers) return send(res, 200, out.body, out.headers);
     return send(res, 200, out);
   }
+  function audit(companyId, user, action, ctx, ip, out) {
+    try {
+      const entityId = Number(ctx.params.id) || Number(out?.id ?? out?.body?.id) || null;
+      db.prepare('INSERT INTO audit_log(company_id,user_id,user_name,action,entity_id,detail,ip) VALUES (?,?,?,?,?,?,?)')
+        .run(companyId ?? null, user?.id ?? null, user?.name ?? null, action, entityId, auditDetail(ctx.body), ip ?? null);
+    } catch (e) { console.error('Journal :', e.message); }
+  }
   const require_feature = (company, f) => ({ pro: true, cooperative: true }[company.plan] && f === 'coop') || false;
 
   function serveStatic(req, res, url) {
     if (!fs.existsSync(publicDir)) return send(res, 404, 'Interface non installée.', { 'Content-Type': 'text/plain; charset=utf-8' });
     let file = path.join(publicDir, decodeURIComponent(url.pathname));
-    if (!file.startsWith(publicDir)) return send(res, 403, 'Interdit', { 'Content-Type': 'text/plain' });
+    if (!file.startsWith(publicDir + path.sep) && file !== publicDir) return send(res, 403, 'Interdit', { 'Content-Type': 'text/plain' });
+    if (fs.existsSync(file) && fs.statSync(file).isDirectory() && fs.existsSync(path.join(file, 'index.html'))) {
+      if (!url.pathname.endsWith('/')) return send(res, 301, '', { Location: url.pathname + '/' });
+      file = path.join(file, 'index.html'); // pages autonomes : /terrain/, /controle/
+    }
     if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(publicDir, 'index.html'); // routes Angular
     const ext = path.extname(file);
     const cache = ext === '.html' || /sw\.js$|\.webmanifest$/.test(file) ? 'no-cache' : 'public, max-age=86400';
@@ -134,8 +183,12 @@ export function startServer(opts = {}) {
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost');
+      const v = url.pathname.match(/^\/v\/([^/]+)\/([^/]+)\/([^/]+)\/?$/);
       if (url.pathname.startsWith('/api/')) await handleApi(req, res, url);
-      else serveStatic(req, res, url);
+      else if (v && req.method === 'GET') {
+        const r = registry.verify(decodeURIComponent(v[1]), decodeURIComponent(v[2]), decodeURIComponent(v[3]));
+        send(res, r.found ? 200 : 404, verifyPage(r), { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      } else serveStatic(req, res, url);
     } catch (e) {
       if (e instanceof HttpError || e.status) {
         send(res, e.status, { message: e.message, ...(e.errors ? { errors: e.errors } : {}), ...(e.extra || {}) });
@@ -147,13 +200,13 @@ export function startServer(opts = {}) {
   });
 
   const ready = new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, host, () => resolve(server.address().port)); });
-  const close = () => new Promise((r) => { timer && clearInterval(timer); server.close(() => { db.close(); r(); }); });
-  return { server, ready, close, db, S, backup, dataDir, mode };
+  const close = () => new Promise((r) => { timer && clearInterval(timer); jobs.forEach((j) => clearInterval(j)); server.close(() => { db.close(); r(); }); });
+  return { server, ready, close, db, S, backup, dataDir, mode, messenger, registry, licence: () => licenceStatus };
 }
 
 // ---------- lancement en ligne de commande ----------
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const app = startServer();
+  const app = startServer({ demo: process.argv.includes('--demo') });
   const wantOpen = process.argv.includes('--open');
   app.ready.then(async (port) => {
     if (process.argv.includes('--demo')) {
@@ -167,6 +220,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.log(`   Sur cet ordinateur :  http://localhost:${port}`);
     if (app.server.address().address !== '127.0.0.1') ips.forEach((ip) => console.log(`   Sur le réseau local :  http://${ip}:${port}`));
     console.log(`   Vos données :         ${path.resolve(app.dataDir)}`);
+    console.log(`   Collecte terrain :    http://localhost:${port}/terrain/   ·   Contrôle : http://localhost:${port}/controle/`);
+    const lic = app.licence();
+    if (lic?.state === 'essai') console.log(`   Licence :             essai jusqu'au ${lic.trial_ends.split('-').reverse().join('/')}`);
+    else if (lic?.state === 'essai_termine' || lic?.state === 'licence_expiree') console.log('   Licence :             EXPIRÉE — lecture seule. Enregistrez une licence dans Contrôle > Licence.');
+    else if (lic?.state === 'licence') console.log(`   Licence :             ${lic.client} (offre ${lic.plan}${lic.expires ? `, jusqu'au ${lic.expires.split('-').reverse().join('/')}` : ''})`);
     console.log('\n   Laissez cette fenêtre ouverte pendant que vous travaillez.');
     console.log('   Pour arrêter : fermez cette fenêtre (ou Ctrl+C).\n');
     if (wantOpen) openBrowser(`http://localhost:${port}`);

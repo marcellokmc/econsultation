@@ -95,3 +95,16 @@ Le proxy de développement (`npm start`) redirige `/api` vers `localhost:3000`.
 ## Ce qui a été vérifié, et ce qui ne l'a pas été
 - Vérifié : les 30 tests de l'API ; l'installation comme application dans un vrai navigateur (service worker, manifeste, démarrage sans serveur) ; la chaîne de signature (avec un certificat d'essai) ; un parcours complet dans un vrai navigateur (connexion, production, étiquette QR, facture, livraison, paiement, sauvegarde, page publique, déconnexion) sans aucune erreur ; le premier lancement sur installation vierge ; l'outil d'administration.
 - **Non vérifié sur un vrai Windows** : l'installateur, les fichiers `.bat` et `node.exe` (le code est identique à celui testé sous Linux, mais je n'ai pas pu lancer Windows). Faites un essai sur un PC Windows avant de livrer un client.
+
+## Nouveautés 1.1 (voir aussi `MISE-EN-SERVICE.md`)
+- **Pages** : `/terrain/` (collecte sur téléphone, hors ligne) et `/controle/` (propriétaire et gérant), ajoutées au menu.
+- **Licence (édition installée)** : sans licence, 60 jours d'essai puis lecture seule. La licence signée fixe l'offre et la date de fin ;
+  `offre` et `statut` d'`admin.js` ne servent plus que pour l'édition hébergée. `GRENIER_LICENCE=off` désactive le contrôle (développement).
+- **Nouvelles commandes** d'`admin.js` : `licence <fichier>`, `licence` (état), `registre-creer <identifiant> "<nom>"`, `registre-liste`.
+- **Réglages** (`reglages.json`) : `"adresse_publique"` (= `GRENIER_PUBLIC_URL`, adresse https du serveur hébergé, pour les QR vérifiables),
+  `"sms"` (passerelle SMS). Exemple complet dans `MISE-EN-SERVICE.md`.
+- **Règles ajoutées** : paiement à un membre ≤ solde dû (sinon avance, propriétaire/gérant) ; annulation motivée d'une livraison
+  (lot intact) ou d'un paiement ; aucune opération datée dans le futur ; envoi répété depuis Terrain sans doublon (`client_ref`).
+- **Journal** : toutes les modifications et les connexions refusées (table `audit_log`, sans mot de passe ni clé).
+- **Mise à niveau de la base** : automatique au démarrage (colonnes/tables ajoutées seulement si absentes).
+- **Tests** : `cd app && node --test tests/*.test.js` (42 tests).

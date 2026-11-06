@@ -4,9 +4,16 @@ import { fileURLToPath } from 'node:url';
 import { openDb } from './db.js';
 import { hashPassword } from './lib.js';
 import { PLANS } from './services.js';
+import { createRegistryAccount } from './registry.js';
+import { installLicence, applyLicence } from './licence.js';
+import fs from 'node:fs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = process.env.GRENIER_DATA ?? path.join(here, '..', '..', 'data');
+// Même ordre que le serveur : GRENIER_DATA > reglages.json (dossier_donnees) > dossier par défaut (Documents) > ./data
+function settingsDir() {
+  try { return JSON.parse(fs.readFileSync(process.env.GRENIER_CONFIG || path.join(here, '..', '..', 'reglages.json'), 'utf8')).dossier_donnees || null; } catch { return null; }
+}
+const dataDir = process.env.GRENIER_DATA || settingsDir() || process.env.GRENIER_DEFAULT_DATA || path.join(here, '..', '..', 'data');
 const db = openDb(path.join(dataDir, 'grenier.db'));
 const [cmd, a, b, c] = process.argv.slice(2);
 const company = (key) => db.prepare('SELECT * FROM companies WHERE slug=? OR id=?').get(String(key), Number(key) || -1);
@@ -18,6 +25,10 @@ Commandes :
   mot-de-passe <email> <nouveau>           Réinitialiser le mot de passe d'un utilisateur (8 caractères minimum)
   offre <entreprise> <starter|pro|cooperative>   Changer l'offre (entreprise = identifiant ou « slug »)
   statut <entreprise> <active|trial|suspended> [AAAA-MM-JJ]   Activer, suspendre, ou fixer une date de fin d'abonnement
+                                           (édition hébergée ; dans l'édition installée, c'est la LICENCE qui décide)
+  licence <fichier-ou-texte>               Enregistrer la licence de l'édition installée
+  registre-creer <identifiant> "<nom>"     (serveur hébergé) Créer un compte du registre Grenier Trace ; affiche sa clé
+  registre-liste                           (serveur hébergé) Comptes du registre et nombre de lots publiés
 Les données sont lues dans : ${path.resolve(dataDir)}
 `;
 
@@ -41,5 +52,20 @@ if (cmd === 'liste') {
   const until = c ? new Date(c + 'T23:59:59Z').toISOString() : null;
   db.prepare('UPDATE companies SET subscription_status=?, paid_until=?, trial_ends_at=CASE WHEN ?=\'trial\' THEN ? ELSE trial_ends_at END WHERE id=?').run(b, b === 'active' ? until : null, b, until, co.id);
   out(`${co.name} : statut ${b}${until ? ' jusqu\'au ' + c : ''}.`);
+} else if (cmd === 'licence' && a) {
+  const text = fs.existsSync(a) ? fs.readFileSync(a, 'utf8') : a;
+  const r = installLicence(db, text);
+  out(r.ok ? `Licence enregistrée : ${JSON.stringify(r.status)}` : `Licence refusée : ${r.error}`);
+} else if (cmd === 'licence') {
+  out(JSON.stringify(applyLicence(db)));
+} else if (cmd === 'registre-creer' && a && b) {
+  try {
+    const r = createRegistryAccount(db, a, b);
+    out(`Compte créé. Identifiant public : ${r.slug}\nClé (à transmettre au client, affichée UNE SEULE FOIS) : ${r.key}`);
+  } catch (e) { out(e.message); process.exit(1); }
+} else if (cmd === 'registre-liste') {
+  for (const r of db.prepare('SELECT a.*, (SELECT COUNT(*) FROM registry_lots l WHERE l.account_id=a.id) n, (SELECT SUM(scans) FROM registry_lots l WHERE l.account_id=a.id) s FROM registry_accounts a ORDER BY a.id').all()) {
+    out(`#${r.id}  ${r.slug}  ${r.name}  lots=${r.n}  vérifications=${r.s ?? 0}${r.active ? '' : '  [désactivé]'}`);
+  }
 } else out(HELP);
 db.close();

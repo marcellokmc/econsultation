@@ -1,0 +1,13 @@
+# Certificat HTTPS obtenu et renouvelé automatiquement (Let's Encrypt).
+{
+	email {$EMAIL_ADMIN}
+}
+{$DOMAINE} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Frame-Options "DENY"
+		-Server
+	}
+	reverse_proxy grenier:3000
+}

@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Grenier Pro — vidéo promotionnelle</title>
+<style>
+@font-face { font-family: Bric; src: url(fonts/bricolage-grotesque-latin-700-normal.woff2); font-weight: 700; }
+@font-face { font-family: Inst; src: url(fonts/instrument-sans-latin-400-normal.woff2); font-weight: 400; }
+@font-face { font-family: Inst; src: url(fonts/instrument-sans-latin-500-normal.woff2); font-weight: 500; }
+@font-face { font-family: Inst; src: url(fonts/instrument-sans-latin-600-normal.woff2); font-weight: 600; }
+:root { --ind: #161F52; --ind2: #26327A; --och: #E9B44C; --grn: #3FB47A; --red: #E2463C; --ink: #F3F5FB; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--ind); }
+#stage { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: Inst, sans-serif; color: var(--ink);
+  background: radial-gradient(1200px 800px at 80% 20%, #2A3A93 0%, rgba(42,58,147,0) 60%), radial-gradient(900px 700px at 10% 90%, #3B2A12 0%, rgba(59,42,18,0) 60%), var(--ind); }
+.band { position: absolute; left: 0; right: 0; top: 0; height: 12px; background: repeating-linear-gradient(90deg, #C8102E 0 40px, #E9C46A 40px 80px, #1F6B43 80px 120px, #fff 120px 136px); }
+.scene { position: absolute; inset: 0; opacity: 0; }
+.cap { position: absolute; left: 110px; top: 250px; width: 640px; }
+.kick { font: 600 26px Inst; letter-spacing: 4px; text-transform: uppercase; color: var(--och); margin-bottom: 22px; }
+.title { font: 700 64px/1.08 Bric, sans-serif; margin-bottom: 26px; }
+.sub { font: 400 31px/1.4 Inst; color: #C9D0EA; }
+.pill { display: inline-block; margin-top: 30px; padding: 12px 22px; border-radius: 999px; font: 600 24px Inst; background: rgba(63,180,122,.18); color: #7FE0AC; border: 2px solid rgba(63,180,122,.5); }
+.pill.red { background: rgba(226,70,60,.18); color: #FF9A92; border-color: rgba(226,70,60,.5); }
+/* appareils */
+.laptop { position: absolute; width: 1000px; left: 820px; top: 210px; }
+.laptop .scr { position: relative; width: 1000px; height: 625px; border-radius: 18px 18px 0 0; border: 16px solid #0B0F26; border-bottom-width: 22px; overflow: hidden; background: #fff; box-shadow: 0 40px 90px rgba(0,0,0,.55); }
+.laptop .base { width: 1120px; height: 26px; margin-left: -60px; border-radius: 0 0 28px 28px; background: linear-gradient(#C9CEDB, #8E95A8); }
+.scr img, .phn img { position: absolute; left: 0; top: 0; width: 100%; transform-origin: 50% 0; }
+.phn { position: absolute; width: 330px; height: 672px; border-radius: 46px; border: 13px solid #0B0F26; overflow: hidden; background: #fff; box-shadow: 0 40px 90px rgba(0,0,0,.6); }
+.phn::after { content: ''; position: absolute; top: 8px; left: 50%; width: 90px; height: 22px; margin-left: -45px; border-radius: 20px; background: #0B0F26; }
+.img2 { opacity: 0; }
+/* titres plein écran */
+.center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 120px; }
+.hook { font: 700 76px/1.15 Bric; margin: 10px 0; opacity: 0; }
+.hook b { color: var(--och); }
+.brand { font: 700 170px/1 Bric; letter-spacing: -2px; }
+.brand span { color: var(--och); }
+.tag { font: 500 46px Inst; color: #DCE1F5; margin-top: 28px; }
+.tiles { display: grid; grid-template-columns: repeat(2, 640px); gap: 30px; margin-top: 50px; }
+.tile { background: rgba(255,255,255,.07); border: 2px solid rgba(255,255,255,.14); border-radius: 26px; padding: 34px 36px; text-align: left; font: 600 36px/1.25 Inst; opacity: 0; }
+.tile i { display: block; font-style: normal; font: 700 50px Bric; color: var(--och); margin-bottom: 10px; }
+.cta1 { font: 700 120px/1 Bric; }
+.cta1 span { color: var(--och); }
+.cta2 { font: 700 58px Bric; margin-top: 40px; color: #fff; background: var(--grn); padding: 22px 46px; border-radius: 22px; }
+.cta3 { font: 500 38px Inst; color: #DCE1F5; margin-top: 30px; }
+.cta4 { font: 600 44px Inst; color: var(--och); margin-top: 26px; }
+/* ---------- format vertical (9:16) ---------- */
+body.v .cap { left: 70px; right: 70px; top: 150px; width: auto; text-align: left; }
+body.v .title { font-size: 68px; }
+body.v .sub { font-size: 34px; }
+body.v .laptop { width: 940px; left: 70px; top: 720px; }
+body.v .laptop .scr { width: 940px; height: 588px; }
+body.v .laptop .base { width: 1000px; margin-left: -30px; }
+body.v .hook { font-size: 78px; }
+body.v .brand { font-size: 150px; }
+body.v .tiles { grid-template-columns: 860px; gap: 26px; }
+body.v .cta1 { font-size: 104px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="band"></div>
+
+  <!-- 1. accroche -->
+  <section class="scene" id="s1"><div class="center">
+    <p class="hook">Des producteurs qui <b>attendent d'être payés.</b></p>
+    <p class="hook">Des acheteurs qui <b>exigent la traçabilité.</b></p>
+    <p class="hook">Des cahiers qui <b>ne suffisent plus.</b></p>
+  </div></section>
+
+  <!-- 2. marque -->
+  <section class="scene" id="s2"><div class="center">
+    <div class="brand">Grenier <span>Pro</span></div>
+    <div class="tag">Du champ au client, tout est tracé.</div>
+  </div></section>
+
+  <!-- 3. terrain -->
+  <section class="scene" id="s3">
+    <div class="cap"><div class="kick">Collecte terrain</div><div class="title">Les livraisons saisies au village, même sans réseau</div>
+      <div class="sub">Sur le téléphone de l'agent. Tout part tout seul dès que le réseau revient, sans doublon.</div><div class="pill red" id="s3off">● Hors ligne : rien n'est perdu</div></div>
+    <div class="phn" data-x="1080" data-y="200" data-vx="375" data-vy="760"><img src="img/terrain-saisie.png"><img class="img2" src="img/terrain-recu.png"><img class="img2" src="img/terrain-attente.png"><img class="img2" src="img/terrain-envoye.png"></div>
+    <div class="phn" data-x="1470" data-y="290" data-vx="0" data-vy="0" style="display:none"></div>
+  </section>
+
+  <!-- 4. paiements -->
+  <section class="scene" id="s4">
+    <div class="cap"><div class="kick">Coopérative</div><div class="title">Chaque membre payé juste, et à temps</div>
+      <div class="sub">Soldes exacts, avances, reçus imprimés. La paie de campagne par mobile money en un clic, avec un SMS à chaque producteur.</div></div>
+    <div class="laptop"><div class="scr"><img src="img/paie-dialog.png"><img class="img2" src="img/paie-ok.png"><img class="img2" src="img/recu.png"></div><div class="base"></div></div>
+  </section>
+
+  <!-- 5. traçabilité -->
+  <section class="scene" id="s5">
+    <div class="cap"><div class="kick">Traçabilité</div><div class="title">Un QR code sur chaque produit</div>
+      <div class="sub">Votre client scanne et voit « Lot authentique », l'origine et la date limite. En cas de problème : rappel du lot en 3 clics.</div></div>
+    <div class="laptop"><div class="scr"><img src="img/etiquettes.png"><img class="img2" src="img/trace.png"></div><div class="base"></div></div>
+    <div class="phn" data-x="1560" data-y="330" data-vx="690" data-vy="1060"><img src="img/qr-public.png"></div>
+  </section>
+
+  <!-- 6. qualité -->
+  <section class="scene" id="s6">
+    <div class="cap"><div class="kick">Qualité HACCP</div><div class="title">Un lot non conforme ne sort plus du magasin</div>
+      <div class="sub">Contrôles de réception, de production et d'hygiène, analyses de laboratoire. Le lot est bloqué automatiquement.</div><div class="pill red">Aflatoxines hors limite → lot bloqué</div></div>
+    <div class="laptop"><div class="scr"><img src="img/qualite.png"><img class="img2" src="img/qualite-bloque.png"></div><div class="base"></div></div>
+  </section>
+
+  <!-- 7. crédit -->
+  <section class="scene" id="s7">
+    <div class="cap"><div class="kick">Financement</div><div class="title">Votre stock devient votre garantie</div>
+      <div class="sub">Récépissés d'entrepôt pour le warrantage, et un dossier de crédit chiffré, prêt pour la banque ou la microfinance.</div></div>
+    <div class="laptop"><div class="scr"><img src="img/recepisse.png"><img class="img2" src="img/dossier.png"></div><div class="base"></div></div>
+  </section>
+
+  <!-- 8. marché -->
+  <section class="scene" id="s8">
+    <div class="cap"><div class="kick">Marché</div><div class="title">De nouveaux acheteurs, de meilleurs prix</div>
+      <div class="sub">Publiez vos offres, recevez les demandes des transformateurs et exportateurs, suivez les prix payés aux producteurs.</div></div>
+    <div class="laptop"><div class="scr"><img src="img/marche.png"><img class="img2" src="img/prix.png"></div><div class="base"></div></div>
+    <div class="phn" data-x="1560" data-y="330" data-vx="690" data-vy="1060"><img src="img/marche-mobile.png"></div>
+  </section>
+
+  <!-- 9. tableau de bord -->
+  <section class="scene" id="s9">
+    <div class="cap"><div class="kick">Pilotage</div><div class="title">Toute votre activité d'un coup d'œil</div>
+      <div class="sub">Ventes, sommes à encaisser, stock, dû aux membres, alertes. Au bureau, sur le téléphone, ou à distance.</div><div class="pill">Sauvegardé chaque jour, chiffré en ligne</div></div>
+    <div class="laptop"><div class="scr"><img src="img/accueil.png"><img class="img2" src="img/coop.png"></div><div class="base"></div></div>
+  </section>
+
+  <!-- 10. atouts -->
+  <section class="scene" id="s10"><div class="center">
+    <div class="title" style="font-size:72px">Pensé pour le terrain africain</div>
+    <div class="tiles">
+      <div class="tile"><i>0 réseau</i>Fonctionne sans internet, sur un PC du bureau</div>
+      <div class="tile"><i>PC + mobile</i>Ordinateur et téléphones des agents</div>
+      <div class="tile"><i>FCFA</i>TVA, IFU, RCCM, Orange et Moov Money</div>
+      <div class="tile"><i>60 jours</i>d'essai gratuit, installation en 10 minutes</div>
+    </div>
+  </div></section>
+
+  <!-- 11. appel à l'action -->
+  <section class="scene" id="s11"><div class="center">
+    <div class="cta1">Grenier <span>Pro</span></div>
+    <div class="tag">Du champ au client, tout est tracé.</div>
+    <div class="cta2">Demandez votre démonstration gratuite</div>
+    <div class="cta3" id="contact"></div>
+  </div></section>
+</div>
+
+<script>
+// ---------- moteur : render(t) place chaque élément pour l'instant t (secondes) ----------
+const V = new URLSearchParams(location.search).get('format') === 'vertical';
+if (V) document.body.classList.add('v');
+const CONTACT = new URLSearchParams(location.search).get('contact') || '';
+document.getElementById('contact').textContent = CONTACT;
+const SCENES = [['s1', 0, 6.4], ['s2', 6.4, 10.4], ['s3', 10.4, 19], ['s4', 19, 26], ['s5', 26, 33], ['s6', 33, 39], ['s7', 39, 45], ['s8', 45, 51.5], ['s9', 51.5, 57], ['s10', 57, 63], ['s11', 63, 70]];
+window.DURATION = 70;
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const out = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const ramp = (t, a, b) => clamp((t - a) / (b - a));
+// positions des téléphones (horizontal / vertical)
+document.querySelectorAll('.phn').forEach((p) => { p.style.left = (V ? p.dataset.vx : p.dataset.x) + 'px'; p.style.top = (V ? p.dataset.vy : p.dataset.y) + 'px'; });
+if (V) document.querySelectorAll('#s3 .phn').forEach((p) => { p.style.width = '520px'; p.style.height = '1058px'; p.style.left = '280px'; p.style.top = '700px'; });
+
+function sceneFade(el, t, a, b) {
+  const fi = out(ramp(t, a, a + .6)), fo = 1 - ramp(t, b - .5, b);
+  el.style.opacity = Math.min(fi, fo);
+  return t - a;
+}
+/** Affiche successivement les images d'un écran (fondu) avec un léger zoom ; changes = instants de bascule (relatifs). */
+function slides(container, lt, changes, zoom = .05) {
+  const imgs = [...container.querySelectorAll('img')];
+  imgs.forEach((img, i) => {
+    const start = i === 0 ? -1 : changes[i - 1], end = i < changes.length ? changes[i] + .45 : 99;
+    const op = i === 0 ? 1 - ramp(lt, changes[0] ?? 99, (changes[0] ?? 99) + .45) * 0 : ramp(lt, start, start + .45);
+    img.style.opacity = i === 0 ? 1 : op * (lt < end || i === imgs.length - 1 ? 1 : 1);
+    img.style.zIndex = i;
+    const local = lt - (i === 0 ? 0 : start);
+    img.style.transform = `scale(${1 + zoom * clamp(local / 6)})`;
+  });
+}
+function enter(el, lt, delay = 0, dy = 60) {
+  const k = out(ramp(lt, delay, delay + .8));
+  el.style.opacity = k; el.style.transform = `translateY(${(1 - k) * dy}px)`;
+}
+
+function render(t) {
+  for (const [id, a, b] of SCENES) {
+    const el = document.getElementById(id);
+    if (t < a - .01 || t > b + .01) { el.style.opacity = 0; continue; }
+    const lt = sceneFade(el, t, a, b);
+    if (id === 's1') {
+      el.querySelectorAll('.hook').forEach((h, i) => enter(h, lt, .3 + i * 1.6, 40));
+    } else if (id === 's2') {
+      const k = out(ramp(lt, .1, 1.2));
+      el.querySelector('.brand').style.transform = `scale(${.86 + .14 * k})`; el.querySelector('.brand').style.opacity = k;
+      enter(el.querySelector('.tag'), lt, .9, 30);
+    } else if (id === 's10') {
+      enter(el.querySelector('.title'), lt, .1, 30);
+      el.querySelectorAll('.tile').forEach((x, i) => enter(x, lt, .6 + i * .45, 40));
+    } else if (id === 's11') {
+      const k = out(ramp(lt, .1, 1.1));
+      el.querySelector('.cta1').style.transform = `scale(${.9 + .1 * k})`; el.querySelector('.cta1').style.opacity = k;
+      enter(el.querySelector('.tag'), lt, .7, 20); enter(el.querySelector('.cta2'), lt, 1.4, 30);
+      const pulse = 1 + .025 * Math.sin(Math.max(0, lt - 2.4) * 4);
+      el.querySelector('.cta2').style.transform += ` scale(${pulse})`;
+      enter(el.querySelector('.cta3'), lt, 2, 20);
+    } else {
+      const cap = el.querySelector('.cap');
+      [...cap.children].forEach((c, i) => enter(c, lt, .15 + i * .25, 30));
+      const lap = el.querySelector('.laptop'), phones = [...el.querySelectorAll('.phn')].filter((p) => p.style.display !== 'none');
+      if (lap) { const k = out(ramp(lt, .3, 1.3)); lap.style.opacity = k; lap.style.transform = `translateY(${(1 - k) * 80}px)`; }
+      phones.forEach((ph, i) => { const k = out(ramp(lt, lap ? 1.6 : .4, (lap ? 1.6 : .4) + .9)); ph.style.opacity = k; ph.style.transform = `translateY(${(1 - k) * 120}px) rotate(${lap ? -3 * k : 0}deg)`; });
+      const D = b - a;
+      if (id === 's3') { slides(phones[0], lt, [3.6, 5.4, 6.8], .02); el.querySelector('#s3off').style.opacity = lt > 1 && lt < 6.9 ? Math.min(1, (lt - 1) * 2) : lt >= 6.9 ? 0 : 0;
+        if (lt >= 6.9) { const p = el.querySelector('#s3off'); p.className = 'pill'; p.textContent = '✓ Réseau revenu : tout est envoyé'; p.style.opacity = 1; } else { const p = el.querySelector('#s3off'); p.className = 'pill red'; p.textContent = '● Hors ligne : rien n’est perdu'; } }
+      if (id === 's4') slides(lap.querySelector('.scr'), lt, [2.6, 4.6]);
+      if (id === 's5') slides(lap.querySelector('.scr'), lt, [3.6]);
+      if (id === 's6') { slides(lap.querySelector('.scr'), lt, [2.2]); const img = lap.querySelectorAll('img')[1]; if (lt > 2.2) { img.style.transformOrigin = '40% 76%'; img.style.transform = `scale(${1 + .9 * ease(ramp(lt, 2.8, 4.4))})`; } }
+      if (id === 's7') slides(lap.querySelector('.scr'), lt, [3]);
+      if (id === 's8') slides(lap.querySelector('.scr'), lt, [3.4]);
+      if (id === 's9') slides(lap.querySelector('.scr'), lt, [3.2]);
+    }
+  }
+}
+window.render = render;
+render(0);
+</script>
+</body>
+</html>

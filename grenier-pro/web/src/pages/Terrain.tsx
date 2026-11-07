@@ -117,7 +117,7 @@ export function Terrain({ offline, embedded }: { offline: boolean; embedded?: bo
           {!items.length && <> · <a href="/stock">{t('créer au moins une matière première (Stock → Nouvel article)')}</a></>}
           {!members.length && <> · <a href="/cooperative">{t('enregistrer les membres (Coopérative → Nouveau membre, ou « Nouveau membre » ci-dessous)')}</a></>}
         </div>}
-        {embedded && <div class="msg info small">{t('Sur le téléphone d’un agent : ouvrez l’adresse « réseau local » affichée au démarrage de Grenier, suivie de /terrain, puis « Ajouter à l’écran d’accueil ».')}</div>}
+        {embedded && <div class="msg info small desk-only">{t('Sur le téléphone d’un agent : ouvrez l’adresse « réseau local » affichée au démarrage de Grenier, suivie de /terrain, puis « Ajouter à l’écran d’accueil ».')}</div>}
         {errs > 0 && <div class="msg err">{t('{n} saisie(s) refusée(s) par le serveur : voir « En attente ».', { n: errs })}</div>}
         {receipt ? <Receipt e={receipt} company={me.company.name} pending={queue.some((q) => q.client_ref === receipt.client_ref)} onNext={() => setReceipt(null)} /> : <>
           <Tabs tabs={tabs} value={cur} onChange={setTab} />

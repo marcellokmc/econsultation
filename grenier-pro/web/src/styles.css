@@ -69,6 +69,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .bottomnav .active { color: var(--primary); font-weight: 600; }
   h1 { font-size: 22px; }
   .kpis { grid-template-columns: 1fr 1fr; }
+  .desk-only { display: none !important; }
   .kpi { padding: 12px; border-bottom: 1px solid var(--line-2); }
   .kpi b { font-size: 18px; }
 }

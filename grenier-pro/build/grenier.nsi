@@ -1,4 +1,4 @@
-; Installateur Windows de Grenier Pro (NSIS 3, Unicode). Fabriqué par build/construire-installeur.sh.
+﻿; Installateur Windows de Grenier Pro (NSIS 3, Unicode). Fabriqué par build/construire-installeur.sh.
 ; Installation par utilisateur (pas besoin de droits administrateur), comme la version 1.0.
 Unicode true
 !include "MUI2.nsh"

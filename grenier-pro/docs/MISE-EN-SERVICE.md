@@ -17,7 +17,7 @@ Ce guide explique comment mettre Grenier en service et activer chaque module. Or
 | **Grenier en ligne** | Sauvegarde chiffrée + restauration, consultation à distance, QR vérifiables | Tests (dont restauration complète sur un PC neuf) |
 | **SMS** | Reçus aux membres | Passerelle HTTP générique testée ; Orange : **non testé** avec un vrai compte |
 | **Licences** | Essai 60 jours, licences signées | Tests |
-| **Installateur Windows** | `Grenier-Pro-Setup-2.0.0.exe` | Contenu et démarrage vérifiés ; **pas encore installé sur un vrai PC Windows** |
+| **Installateur Windows** | `Grenier-Pro-Setup-2.0.0.exe` | Vérifié **sous Wine** (Windows simulé) avec le vrai `node.exe` : installation silencieuse, 6 raccourcis + Bureau, démarrage, démonstration, tous les écrans, sauvegarde, mise à jour 1.1 → 2.0 avec données conservées, désinstallation (données conservées). **À confirmer sur un vrai PC Windows 10/11** (pare-feu, SmartScreen) |
 | **Hébergement** | Docker + HTTPS automatique | Image construite et démarrée ; HTTPS : **à faire avec votre domaine** |
 | **Langues** | Mooré, dioula, fulfulde | Chaîne de traduction prête ; **traductions à faire par des locuteurs natifs** (`docs/traduction`) |
 
@@ -122,8 +122,8 @@ membres**). Menu : solde, dernières livraisons, derniers paiements, prix d'acha
   le contrat reste la protection principale.
 
 ## 11. Liste de contrôle avant le premier client payant
-- [ ] Installer `Grenier-Pro-Setup-2.0.0.exe` sur Windows 10 et 11 : installation, démarrage, accès téléphone (pare-feu),
-      mise à jour par-dessus 1.x, désinstallation (données conservées).
+- [ ] Installer `Grenier-Pro-Setup-2.0.0.exe` sur un vrai Windows 10 et 11 (déjà vérifié sous Wine) : avertissement
+      SmartScreen, autorisation du pare-feu, accès depuis un téléphone du même Wi-Fi.
 - [ ] Serveur en ligne : domaine, HTTPS, sauvegarde externe **avec une restauration testée**.
 - [ ] Sur une installation de test : relier au serveur, activer la sauvegarde en ligne, **restaurer sur un autre PC**.
 - [ ] SMS : test réel (coût par SMS connu). Mobile money : contrat + adaptation + essais de petits montants.

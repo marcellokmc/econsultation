@@ -35,6 +35,7 @@ for f in windows/*.bat LISEZ-MOI.txt; do sed 's/\r*$/\r/' "$f" > "$STAGE/$(basen
 printf '{\r\n  "port": 3000,\r\n  "reseau": true,\r\n  "dossier_donnees": "",\r\n  "adresse_publique": "",\r\n  "sms": { "fournisseur": "journal" }\r\n}\r\n' > "$STAGE/reglages.json"
 
 OUT="dist/Grenier-Pro-Setup-$VERSION.exe"
+# grenier.nsi DOIT rester en UTF-8 avec BOM : sans BOM, NSIS lit les accents en ANSI (raccourcis « démonstration », « Réglages »… non créés)
 makensis -V2 -DVERSION="$VERSION" -DSTAGE="$(pwd)/$STAGE" -DOUTFILE="$(pwd)/$OUT" build/grenier.nsi
 
 if [ -n "${CERT_PFX:-}" ]; then

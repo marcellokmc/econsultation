@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
+import { MODULE_SCHEMAS } from './modules/index.js';
 
 const SCHEMA = `
 PRAGMA journal_mode = WAL;
@@ -120,11 +121,14 @@ const COLUMNS_V11 = [
   ['member_payouts', 'cancelled_at', 'TEXT'], ['member_payouts', 'cancelled_by', 'INTEGER'], ['member_payouts', 'user_id', 'INTEGER'],
   ['members', 'client_ref', 'TEXT'], ['items', 'filiere', 'TEXT'],
   ['lots', 'public_token', 'TEXT'], ['lots', 'published_at', 'TEXT'], ['lots', 'scans', 'INTEGER NOT NULL DEFAULT 0'], ['lots', 'last_scan_at', 'TEXT'],
+  ['lots', 'quality_status', 'TEXT'], ['lots', 'quality_note', 'TEXT'], ['lots', 'pledge_id', 'INTEGER'],
   ['companies', 'sms_enabled', 'INTEGER NOT NULL DEFAULT 0'], ['companies', 'registry_key', 'TEXT'], ['companies', 'registry_slug', 'TEXT'],
 ];
 
+
 function migrate(db) {
   db.exec(SCHEMA_V11);
+  for (const sql of MODULE_SCHEMAS) db.exec(sql);
   for (const [table, col, def] of COLUMNS_V11) {
     const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
     if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);

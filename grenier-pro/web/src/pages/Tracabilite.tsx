@@ -119,7 +119,7 @@ export function Etiquettes() {
   );
 }
 
-type Pub = { company: { name: string; address: string | null; phone: string | null }; lot: string; product: string; kind: string; date: string; expires_on: string | null; expired: boolean; origin: { villages: string[]; producers_count: number }; quality?: string | null };
+type Pub = { company: { name: string; address: string | null; phone: string | null }; lot: string; product: string; kind: string; date: string; expires_on: string | null; expired: boolean; withdrawn?: boolean; controls?: number; origin: { villages: string[]; producers_count: number } };
 export function PublicTrace({ slug, code }: { slug: string; code: string }) {
   const [d, setD] = useState<Pub | null | false>(null);
   useEffect(() => { api.get<Pub>(`/public/trace/${encodeURIComponent(slug)}/${encodeURIComponent(code)}`).then(setD).catch(() => setD(false)); }, [slug, code]);
@@ -128,7 +128,8 @@ export function PublicTrace({ slug, code }: { slug: string; code: string }) {
       {d === null ? <Loading /> : d === false ? <><h1>{t('Lot introuvable')}</h1><p>{t('Ce QR code ne correspond à aucun lot connu. Vérifiez l’emballage ou contactez le fabricant.')}</p></> : (
         <>
           <p class="muted">{d.company.name}</p><h1>{d.product}</h1>
-          {d.expired ? <Badge kind="bad">{t('Lot authentique mais PÉRIMÉ')}</Badge> : <Badge kind="ok">{t('Lot authentique et valide')}</Badge>}
+          {d.withdrawn ? <Badge kind="bad">{t('Lot RETIRÉ DE LA VENTE — ne pas consommer')}</Badge> : d.expired ? <Badge kind="bad">{t('Lot authentique mais PÉRIMÉ')}</Badge> : <Badge kind="ok">{t('Lot authentique et valide')}</Badge>}
+          {!!d.controls && <p class="small muted">{t('{n} contrôle(s) qualité conforme(s).', { n: d.controls })}</p>}
           <table style={{ marginTop: 14 }}><tbody>
             <tr><th>{t('Numéro de lot')}</th><td class="mono">{d.lot}</td></tr>
             <tr><th>{d.kind === 'pf' ? t('Fabriqué le') : t('Reçu le')}</th><td>{frDate(d.date)}</td></tr>

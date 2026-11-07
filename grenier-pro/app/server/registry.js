@@ -22,7 +22,9 @@ export function verifyPage({ found, data, scans, publishedBy }) {
       <p>Ne consommez pas le produit en cas de doute et signalez-le au vendeur.</p>`;
   } else {
     const expired = data.expires_on && data.expires_on < new Date().toISOString().slice(0, 10);
-    body = `<div class="badge ${expired ? 'warn' : 'ok'}">${expired ? '⚠ Lot authentique mais PÉRIMÉ' : '✔ Lot authentique'}</div>
+    const badge = data.withdrawn ? '<div class="badge bad">⚠ Lot authentique mais RETIRÉ DE LA VENTE — ne pas consommer</div>'
+      : `<div class="badge ${expired ? 'warn' : 'ok'}">${expired ? '⚠ Lot authentique mais PÉRIMÉ' : '✔ Lot authentique'}</div>`;
+    body = `${badge}${data.controls ? `<p class="muted">${data.controls} contrôle(s) qualité conforme(s) enregistré(s).</p>` : ''}
       <h1>${esc(data.product)}</h1>
       <dl>
         <dt>Lot</dt><dd>${esc(data.lot)}</dd>

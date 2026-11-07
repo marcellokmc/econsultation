@@ -144,6 +144,23 @@ async function pick(select, prefix) {
     await p.waitForSelector('h2:has-text("Relevé")');
     await go('/cooperative'); await p.click('[role=tab]:has-text("Avances")'); await p.waitForSelector('button:has-text("Accorder une avance")');
   });
+  await step('qualité : contrôle d’hygiène conforme', async () => {
+    await go('/qualite'); await p.waitForSelector('text=Contrôles sur 30 jours');
+    await p.click('button:has-text("Nouveau contrôle")');
+    await pick(dialog().locator('#f-template_id'), 'Hygiène quotidienne');
+    for (const b of await dialog().locator('.seg button:has-text("Oui")').all()) await b.click();
+    await dialog().locator('button:has-text("Enregistrer le contrôle")').click(); await p.waitForSelector('.toast:has-text("conforme")');
+    await shot(p, '15-qualite');
+  });
+  await step('qualité : analyse hors limite → lot bloqué, puis libéré avec motif', async () => {
+    await go('/tracabilite'); await p.locator('a:has-text("Tracer")').first().click(); await p.waitForSelector('h2:has-text("Qualité")');
+    await p.click('button:has-text("Résultat de laboratoire")');
+    await dialog().locator('#f-lab').fill('LNSP'); await dialog().locator('#f-parameter').fill('Aflatoxine B1'); await dialog().locator('#f-value').fill('12');
+    await dialog().locator('#f-conforme').selectOption('false'); await dialog().locator('button:has-text("Enregistrer")').click();
+    await p.waitForSelector('.badge:has-text("Lot bloqué")'); await shot(p, '16-lot-bloque');
+    await p.click('button:has-text("Libérer")'); await dialog().locator('#f-note').fill('Contre-analyse conforme'); await dialog().locator('button:has-text("Libérer")').click();
+    await p.waitForSelector('.badge:has-text("Utilisable")');
+  });
   await step('paramètres : chaque onglet', async () => {
     await go('/parametres');
     for (const tab of ['Équipe', 'Licence', 'Sauvegarde', 'SMS', 'Traçabilité en ligne', 'Journal', 'Mon compte', 'Entreprise']) {

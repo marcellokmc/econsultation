@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { validate, HttpError, biz, hashPassword, checkPassword, newToken, sha, slugify, today, addDays } from './lib.js';
 import { PLANS } from './services.js';
+import { MODULE_ROUTES } from './modules/index.js';
 
 const require = createRequire(import.meta.url);
 const qrcode = require('../vendor/qrcode.cjs');
@@ -326,6 +327,9 @@ export function buildRoutes({ S, mode, x = {} }) {
     for (const l of body.lots) if (!l || typeof l.code !== 'string' || typeof l.token !== 'string' || typeof l.data !== 'object') throw new HttpError(422, 'Lot invalide.');
     return { received: x.registry.receive(acc, body.lots) };
   });
+
+  // ---------- modules (qualité, crédit, marché, paiements, synchronisation…) ----------
+  for (const register of MODULE_ROUTES) register({ add, S, RULE, mode, x, created });
 
   return { routes, RULE, isWritable };
 }

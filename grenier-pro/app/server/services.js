@@ -62,9 +62,11 @@ export function makeServices(db, tx, hooks = {}) {
   /** FIFO (matières) ou FEFO (ventes : date limite la plus proche, jamais un lot périmé). Appeler dans une transaction. */
   function take(cid, uid, item, qty, mode, date, type, ref) {
     if (!(qty > 0)) throw biz('La quantité doit être supérieure à 0.');
+    // Jamais un lot bloqué par la qualité, ni un lot gagé (warrantage) ; en vente, jamais un lot périmé.
+    const usable = "AND (quality_status IS NULL OR quality_status<>'bloque') AND pledge_id IS NULL";
     const lots = mode === 'fefo'
-      ? all('SELECT * FROM lots WHERE company_id=? AND item_id=? AND qty_remaining>0 AND (expires_on IS NULL OR expires_on>=?) ORDER BY expires_on IS NULL, expires_on, received_on, id', cid, item.id, date)
-      : all('SELECT * FROM lots WHERE company_id=? AND item_id=? AND qty_remaining>0 ORDER BY received_on, id', cid, item.id);
+      ? all(`SELECT * FROM lots WHERE company_id=? AND item_id=? AND qty_remaining>0 ${usable} AND (expires_on IS NULL OR expires_on>=?) ORDER BY expires_on IS NULL, expires_on, received_on, id`, cid, item.id, date)
+      : all(`SELECT * FROM lots WHERE company_id=? AND item_id=? AND qty_remaining>0 ${usable} ORDER BY received_on, id`, cid, item.id);
     let need = r3(qty);
     const taken = [];
     for (const lot of lots) {
@@ -75,7 +77,10 @@ export function makeServices(db, tx, hooks = {}) {
       taken.push({ lot, qty: r3(part) });
       need = r3(need - part);
     }
-    if (need > 0) throw biz(`Stock insuffisant pour « ${item.name} » (disponible : ${nf.format(r3(qty - need))} ${item.unit}).`);
+    if (need > 0) {
+      const held = sumOf(`SELECT SUM(qty_remaining) s FROM lots WHERE company_id=? AND item_id=? AND qty_remaining>0 AND ((quality_status='bloque') OR pledge_id IS NOT NULL)`, cid, item.id);
+      throw biz(`Stock insuffisant pour « ${item.name} » (disponible : ${nf.format(r3(qty - need))} ${item.unit}${held > 0 ? ` ; ${nf.format(r3(held))} ${item.unit} bloqués par la qualité ou gagés` : ''}).`);
+    }
     return taken;
   }
   function receipt(cid, uid, d) {
@@ -372,6 +377,7 @@ export function makeServices(db, tx, hooks = {}) {
       if (d <= 30) alerts.push({ type: d < 0 ? 'expired' : 'expiring', lot: l.code, message: d < 0 ? `Lot ${l.code} périmé` : `Lot ${l.code} : date limite dans ${d} j` });
     }
     late.forEach((i) => alerts.push({ type: 'late_invoice', message: `Facture ${i.number} en retard : ${nf.format(i.balance)} FCFA` }));
+    for (const l of all("SELECT code FROM lots WHERE company_id=? AND quality_status='bloque' AND qty_remaining>0", cid)) alerts.push({ type: 'blocked', lot: l.code, message: `Lot ${l.code} bloqué par la qualité` });
     const adv = listMembers(cid).filter((m) => m.balance < 0);
     if (adv.length) alerts.push({ type: 'member_advance', message: `${adv.length} membre(s) doivent de l'argent à la coopérative (avances) : ${nf.format(adv.reduce((s, m) => s - m.balance, 0))} FCFA` });
     return {
@@ -431,6 +437,8 @@ export function makeServices(db, tx, hooks = {}) {
       company: { name: company.name, address: company.address, phone: company.phone },
       lot: raw.code, product: item.name, kind: item.kind, date: raw.received_on, expires_on: raw.expires_on,
       expired: raw.expires_on ? raw.expires_on < t : false,
+      withdrawn: raw.quality_status === 'bloque',
+      controls: Number(get("SELECT COUNT(*) n FROM quality_checks WHERE lot_id=? AND result='conforme'", raw.id)?.n ?? 0),
       origin: { villages: [...new Set([...members.values()].map((m) => m?.village).filter(Boolean))], producers_count: members.size },
       verified_at: new Date().toISOString(),
     };

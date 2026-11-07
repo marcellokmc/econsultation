@@ -4,6 +4,7 @@ import { api, can, session, useApi } from '../lib/api';
 import { fcfa, frDateTime, qty } from '../lib/format';
 import { t } from '../lib/i18n';
 import { Badge, Field, FormError, Loading, Modal, toast, useForm } from '../ui/kit';
+import { UssdToggle } from './MobileMoney';
 
 type Status = { connected: boolean; url: string | null; slug: string | null; hosted: boolean; backup_enabled: boolean; last_backup: string | null; last_backup_error: string | null; last_snapshot: string | null; snapshot_error: string | null; remote_set: boolean; ussd_enabled: boolean };
 
@@ -46,6 +47,7 @@ export function CloudPanel() {
           </div>
         </>}
       </div>
+      {s.connected && <UssdToggle enabled={s.ussd_enabled} onChange={reload} />}
       {code && <RecoveryCode code={code} onClose={() => setCode(null)} />}
       {show && <ShowRecovery onClose={() => setShow(false)} />}
     </>

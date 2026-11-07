@@ -71,7 +71,7 @@ export function startServer(opts = {}) {
   };
   // Après une restauration : la base a été remplacée, Grenier doit redémarrer pour l'ouvrir.
   const requestRestart = opts.onRestart ?? (() => { console.log('\n  Restauration terminée : relancez Grenier Pro.\n'); setTimeout(() => process.exit(0), 300); });
-  const x = { messenger, registry, licence, publicUrl, afterRegister, db, dataDir, snapshotDb, requestRestart, mode };
+  const x = { messenger, registry, licence, publicUrl, afterRegister, db, dataDir, snapshotDb, requestRestart, mode, paiement: opts.paiement ?? cfg.paiement ?? null, ussd: opts.ussd ?? cfg.ussd ?? null, simDelay: opts.simDelay };
   const { routes, RULE, isWritable } = buildRoutes({ S, mode, x });
 
   db.exec("DELETE FROM tokens WHERE created_at < datetime('now','-30 days')"); // sessions expirées

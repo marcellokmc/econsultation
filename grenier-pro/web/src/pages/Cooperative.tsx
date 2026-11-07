@@ -5,10 +5,11 @@ import { fcfaEnLettres } from '../lib/lettres';
 import { t } from '../lib/i18n';
 import { navigate } from '../lib/router';
 import { PAY_METHODS, type Delivery, type Item, type Member, type Payout } from '../lib/types';
+import { MobileMoney } from './MobileMoney';
 import { Badge, Bars, Chips, Empty, Field, FormError, Icon, Loading, Modal, PageHead, ReasonDialog, Tabs, toast, useForm } from '../ui/kit';
 
 type Stats = { members_count: number; active_members: number; delivered_qty: number; delivered_amount: number; paid_amount: number; outstanding: number; advances: number; by_village: { village: string; qty: number }[]; monthly: { month: string; qty: number }[]; top_balances: { member_id: number; name: string; village: string | null; balance: number }[] };
-type Tab = 'dash' | 'membres' | 'livraisons' | 'paiements' | 'avances';
+type Tab = 'dash' | 'membres' | 'livraisons' | 'paiements' | 'mobile' | 'avances';
 type Dlg = null | { type: 'membre'; m?: Member } | { type: 'livraison' } | { type: 'paiement'; memberId?: number; advance?: boolean };
 
 export function Cooperative() {
@@ -18,6 +19,7 @@ export function Cooperative() {
   const role = session.profile!.user.role;
   const done = () => { setDlg(null); setN((x) => x + 1); };
   const tabs: [Tab, string][] = [['dash', t('Tableau de bord')], ['membres', t('Membres')], ['livraisons', t('Livraisons')], ['paiements', t('Paiements')]];
+  if (can.payout(role)) tabs.push(['mobile', t('Mobile money')]);
   if (can.correct(role)) tabs.push(['avances', t('Avances')]);
   return (
     <>
@@ -32,6 +34,7 @@ export function Cooperative() {
       {tab === 'livraisons' && <Livraisons key={n} />}
       {tab === 'paiements' && <Paiements key={n} />}
       {tab === 'avances' && <Avances key={n} onAdvance={() => setDlg({ type: 'paiement', advance: true })} />}
+      {tab === 'mobile' && <MobileMoney key={n} />}
       {dlg?.type === 'membre' && <MembreDialog m={dlg.m} onClose={() => setDlg(null)} onDone={done} />}
       {dlg?.type === 'livraison' && <LivraisonDialog onClose={() => setDlg(null)} onDone={done} />}
       {dlg?.type === 'paiement' && <PaiementDialog memberId={dlg.memberId} advance={dlg.advance} onClose={() => setDlg(null)} onDone={(p) => { setDlg(null); navigate(`/cooperative/recus/${p.id}`); }} />}

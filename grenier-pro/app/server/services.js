@@ -297,8 +297,11 @@ export function makeServices(db, tx, hooks = {}) {
         if (dup) return { ...payoutView(cid, dup.id), duplicate: true };
       }
       const m = must(get('SELECT * FROM members WHERE id=? AND company_id=?', d.member_id, cid), 'Membre');
-      const balance = memberBalance(m.id);
-      if (!d.advance && d.amount > balance) {
+      // Les ordres mobile money en cours sont réservés : on ne paie pas deux fois la même somme.
+      const pending = d.internal ? 0 : sumOf("SELECT SUM(amount) s FROM payment_orders WHERE member_id=? AND status IN ('en_attente','envoye')", m.id);
+      const balance = memberBalance(m.id) - pending;
+      if (pending > 0 && !d.advance && d.amount > balance) throw biz(`Un paiement mobile money de ${fcfa(pending)} FCFA est en cours pour ${m.name} : il reste ${fcfa(Math.max(balance, 0))} FCFA à payer.`);
+      if (!d.internal && !d.advance && d.amount > balance) {
         throw biz(balance > 0
           ? `Le montant dépasse ce qui est dû à ${m.name} (${fcfa(balance)} FCFA). Pour verser plus, enregistrez une avance (propriétaire ou gérant).`
           : `Rien n'est dû à ${m.name} (solde : ${fcfa(balance)} FCFA). Pour verser de l'argent, enregistrez une avance (propriétaire ou gérant).`);

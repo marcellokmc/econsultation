@@ -30,7 +30,10 @@ async function pick(select, prefix) {
 
 (async () => {
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'grenier-e2e-'));
-  const srv = spawn(process.execPath, ['--no-warnings', path.join(__dirname, '..', 'app', 'server', 'index.js'), '--demo'], { env: { ...process.env, GRENIER_DATA: data, PORT: String(PORT), HOST: '127.0.0.1' }, stdio: 'ignore' });
+  // paiements mobile money en SIMULATION pour le parcours
+  const cfg = path.join(data, 'reglages-e2e.json');
+  fs.writeFileSync(cfg, JSON.stringify({ paiement: { fournisseur: 'simulation' } }));
+  const srv = spawn(process.execPath, ['--no-warnings', path.join(__dirname, '..', 'app', 'server', 'index.js'), '--demo'], { env: { ...process.env, GRENIER_DATA: data, GRENIER_CONFIG: cfg, PORT: String(PORT), HOST: '127.0.0.1' }, stdio: 'ignore' });
   for (let i = 0; i < 50; i++) { try { if ((await fetch(B + '/api/public/info')).ok) break; } catch { /* démarrage */ } await new Promise((r) => setTimeout(r, 200)); }
   const browser = await chromium.launch();
   const errors = [];
@@ -43,6 +46,7 @@ async function pick(select, prefix) {
   // ================= bureau =================
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const p = await ctx.newPage(); watch(p, 'bureau');
+  p.on('dialog', (d) => d.accept()); // confirmations (paie de campagne…)
   const go = async (url) => { await p.goto(B + url); await p.waitForLoadState('networkidle'); };
   const dialog = () => p.locator('[role=dialog]');
 
@@ -139,6 +143,12 @@ async function pick(select, prefix) {
     await dialog().locator('#f-reason').fill('Erreur de pesée (test)'); await dialog().locator('button:has-text("Confirmer")').click();
     await p.waitForSelector('.toast:has-text("annulée")');
   });
+  await step('mobile money : paie de campagne (simulation) confirmée par l’opérateur', async () => {
+    await go('/cooperative'); await p.click('[role=tab]:has-text("Mobile money")'); await p.waitForSelector('text=Mode SIMULATION');
+    await p.click('button:has-text("Paie de campagne")'); await p.waitForSelector('[role=dialog] tbody tr');
+    await dialog().locator('button:has-text("Payer")').click(); await p.waitForSelector('.toast:has-text("ordres envoyés")');
+    await p.waitForSelector('.badge:has-text("Payé")', { timeout: 10000 }); await shot(p, '17-mobile-money');
+  });
   await step('coopérative : fiche membre et avances', async () => {
     await p.click('[role=tab]:has-text("Membres")'); await p.locator('a:has-text("Fiche")').first().click();
     await p.waitForSelector('h2:has-text("Relevé")');
@@ -214,7 +224,7 @@ async function pick(select, prefix) {
   });
   await step('terrain : paiement excessif refusé', async () => {
     await tp.click('[role=tab]:has-text("Paiement")'); await pick(tp.locator('select').first(), 'Rasmata');
-    await tp.fill('#f-amount', '999999999'); await tp.click('button:has-text("Enregistrer le paiement")'); await tp.waitForSelector('.msg.err:has-text("dépasse")');
+    await tp.fill('#f-amount', '999999999'); await tp.click('button:has-text("Enregistrer le paiement")'); await tp.waitForSelector('.msg.err:has-text("dépasse"), .msg.err:has-text("Rien n")');
   });
 
   await browser.close(); srv.kill();

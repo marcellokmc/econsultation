@@ -162,7 +162,13 @@ export function openDb(file) {
 
 /** Transaction : tout ou rien (une règle métier violée annule toutes les écritures). */
 export function makeTx(db) {
+  let depth = 0; // réentrant : une opération appelée depuis une autre (ex. ordre mobile money → paiement) partage sa transaction
   return (fn) => {
+    if (depth > 0) { depth++; try { return fn(); } finally { depth--; } }
+    depth = 1;
+    try { return run(fn); } finally { depth = 0; }
+  };
+  function run(fn) {
     db.exec('BEGIN IMMEDIATE');
     try {
       const r = fn();
@@ -172,5 +178,5 @@ export function makeTx(db) {
       try { db.exec('ROLLBACK'); } catch { /* déjà annulée */ }
       throw e;
     }
-  };
+  }
 }

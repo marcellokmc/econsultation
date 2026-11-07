@@ -1,0 +1,46 @@
+OUBRA – Soumbala Granulés 500 g – Kit de fichiers modifiables
+Format du sachet : doypack 18 x 26 cm + soufflet 5 cm (180 x 260 mm + 2 x 50 mm), échelle 1:1
+
+CONTENU
+- OUBRA_Soumbala_500g_18x26x5_recto-verso-soufflet.svg
+    Le design complet (recto, verso, soufflet, gabarit) en vectoriel.
+    Les textes sont de vrais textes : on peut les modifier directement.
+- OUBRA_fiche_technique.svg       Fiche technique FR/EN, modifiable.
+- OUBRA_Soumbala_500g_18x26x5_impression.pdf
+    Le fichier d'impression actuel (CMJN, polices incorporées). S'ouvre et se modifie aussi dans Adobe Illustrator.
+- polices/   Les 4 polices utilisées (gratuites, licence SIL Open Font License, Google Fonts) :
+             Playfair Display (OUBRA), Caprasimo (SOUMBALA, GRANULÉS),
+             Courgette (slogan, atouts), Open Sans (tous les autres textes).
+- images/    La photo du recto (RVB pour l'écran, CMJN pour l'impression).
+- source/    Le script qui génère le PDF (pour les modifications faites avec Claude).
+
+ÉTAPE 1 – INSTALLER LES POLICES (obligatoire)
+  Windows : clic droit sur chaque fichier .ttf du dossier « polices » > Installer.
+  Mac : double-clic sur chaque .ttf > Installer.
+  Sans cela, les textes s'afficheront avec une autre police.
+
+ÉTAPE 2 – OUVRIR ET MODIFIER
+  • Inkscape (gratuit, inkscape.org) : Fichier > Ouvrir > le fichier .svg.
+    Double-clic sur un texte pour le changer. Ctrl+clic pour sélectionner un objet dans un groupe.
+    Pour changer la photo : clic sur la photo > clic droit > « Remplacer l'image » (ou supprimer et Fichier > Importer).
+  • Adobe Illustrator : ouvrir le .pdf ou le .svg. Mettre le document en mode CMJN
+    (Fichier > Mode colorimétrique du document > CMJN) avant d'exporter pour l'imprimeur.
+  • Canva : Créer un design > Importer > le fichier .svg (Canva peut regrouper ou simplifier certains éléments).
+
+ÉTAPE 3 – EXPORTER POUR L'IMPRIMEUR
+  Exporter en PDF (PDF/X-1a ou PDF/X-4 si disponible), couleurs CMJN, polices incorporées
+  ou vectorisées, fond perdu 3 mm. Laisser les repères magenta/cyan (gabarit) sur un calque
+  séparé marqué « ne pas imprimer ».
+
+RÈGLES À RESPECTER EN MODIFIANT
+  - Rester dans la zone de sécurité (pointillés cyan) : rien d'important dans les soudures ni sur la ligne du zip.
+  - Couleurs officielles (CMJN) : voir la légende sur la page 1.
+  - Le fichier SVG est en couleurs écran (RVB) ; repasser en CMJN avant l'impression.
+
+À FINALISER AVANT PRODUCTION
+  1. Logo provisoire : remplacer par le fichier original du logo.
+  2. Photo : résolution trop faible (600 x 450 px) et filigrane « Adele » – fournir une photo
+     haute définition (au moins 1 500 px de large), libre de droits ou prise par vous.
+  3. Code-barres : numéro d'exemple – obtenir un vrai code EAN-13 auprès de GS1.
+  4. Tableau nutritionnel : faire valider les valeurs par un laboratoire.
+  5. Demander un BAT couleur (épreuve physique) au fabricant.

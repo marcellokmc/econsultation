@@ -234,7 +234,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.log(`   Sur cet ordinateur :  http://localhost:${port}`);
     if (app.server.address().address !== '127.0.0.1') ips.forEach((ip) => console.log(`   Sur le réseau local :  http://${ip}:${port}`));
     console.log(`   Vos données :         ${path.resolve(app.dataDir)}`);
-    console.log(`   Collecte terrain :    http://localhost:${port}/terrain/   ·   Contrôle : http://localhost:${port}/controle/`);
+    console.log(`   Collecte terrain :    http://localhost:${port}/terrain  (téléphones : adresse « réseau local » + /terrain)`);
     const lic = app.licence();
     if (lic?.state === 'essai') console.log(`   Licence :             essai jusqu'au ${lic.trial_ends.split('-').reverse().join('/')}`);
     else if (lic?.state === 'essai_termine' || lic?.state === 'licence_expiree') console.log('   Licence :             EXPIRÉE — lecture seule. Enregistrez une licence dans Contrôle > Licence.');

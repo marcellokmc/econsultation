@@ -44,6 +44,7 @@ const ROUTES: [string, (p: Record<string, string>) => any][] = [
   ['/cooperative/membres/:id', (p) => <MembrePage id={Number(p.id)} />],
   ['/cooperative/recus/:id', (p) => <RecuPage id={Number(p.id)} />],
   ['/parametres', () => <Parametres />],
+  ['/controle', () => { navigate('/parametres?onglet=journal', true); return null; }], // ancienne page Contrôle (1.1)
   ...extraPages.flatMap((x) => x.routes),
 ];
 

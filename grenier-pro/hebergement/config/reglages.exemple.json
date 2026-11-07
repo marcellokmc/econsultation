@@ -1,0 +1,5 @@
+{
+  "sms": { "fournisseur": "http", "url": "https://passerelle-sms.exemple/api/send", "entetes": { "X-Api-Key": "CLE" }, "expediteur": "GRENIER" },
+  "paiement": { "fournisseur": "http", "url": "https://agregateur.exemple/api/payouts", "entetes": { "Authorization": "Bearer CLE" }, "secret_rappel": "SECRET-PARTAGE-AVEC-L-AGREGATEUR" },
+  "ussd": { "cle": "CHAINE-ALEATOIRE-LONGUE" }
+}

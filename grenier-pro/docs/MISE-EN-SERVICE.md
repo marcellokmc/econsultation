@@ -1,173 +1,133 @@
-# Mise en service — Grenier Pro 1.1
+# Mise en service — Grenier Pro 2.0
 
-Ce document explique comment mettre Grenier en service : chez un client (installation Windows), en ligne
-(serveur hébergé), et comment activer les briques ajoutées en 1.1 (collecte terrain, contrôle, SMS,
-QR vérifiables, licences).
+Ce guide explique comment mettre Grenier en service et activer chaque module. Ordre conseillé :
+**§ 2 clés de licence → § 3 serveur en ligne → § 4 installation chez un client → § 5 à 9 modules → § 11 liste de contrôle.**
 
-## 1. Ce qui est livré
+## 1. Ce qui est livré, et ce qui est vérifié
 
-| Brique | Rôle | État |
+| Brique | Rôle | Vérification |
 |---|---|---|
-| **Grenier Unité** | Stock par lot, production, ventes, coopérative (version 1.0) | En service, défauts corrigés (§ 9) |
-| **Grenier Terrain** (`/terrain/`) | Saisie des livraisons sur téléphone, **sans connexion**, envoi automatique au retour du réseau | Fait, testé dans un navigateur mobile |
-| **Grenier Contrôle** (`/controle/`) | Annulations motivées, avances aux membres, journal des actions, SMS, registre, licence | Fait, testé |
-| **Reçus par SMS** | Le membre reçoit un SMS à chaque livraison, paiement, annulation | Fait ; passerelle « HTTP générique » testée ; Orange **non testé** avec un vrai compte |
-| **Grenier Trace** (QR vérifiables) | Page publique « Lot authentique / Code non reconnu », compteur de vérifications | Fait, testé (hébergé et local → registre) |
-| **Licences signées** | Essai de 60 jours, puis licence obligatoire (édition installée) | Fait, testé |
-| **Hébergement** (`hebergement/`) | Docker + HTTPS automatique (Caddy) | Image construite et démarrée ; HTTPS non testé (il faut un vrai domaine) |
-| **Installateur Windows** (`build/`) | `Grenier-Pro-Setup-1.1.0.exe` | Fabriqué ; **pas encore testé sur un vrai PC Windows** |
+| **Gestion** (stock par lot, production, ventes, traçabilité, coopérative) | Cœur du logiciel, nouvelle interface | Tests API + parcours navigateur |
+| **Terrain** (`/terrain`) | Livraisons saisies sur téléphone sans réseau, envoi automatique au retour | Parcours navigateur (hors ligne, rechargement sans réseau, retour) |
+| **Qualité** | Listes HACCP, contrôles, analyses de laboratoire, blocage automatique des lots | Tests + parcours |
+| **Crédit** | Récépissés d'entrepôt (warrantage), dossier de crédit imprimable | Tests + parcours |
+| **Marché** | Offres de vente, demandes d'achat, contacts, observatoire des prix | Tests + parcours |
+| **Mobile money** | Paiement des membres, paie de campagne | Tests + parcours en **simulation** ; agrégateur réel : **à brancher et tester** (§ 7) |
+| **USSD** | Solde des membres sans smartphone | Tests (format Africa's Talking) ; passerelle réelle : **à brancher** |
+| **Grenier en ligne** | Sauvegarde chiffrée + restauration, consultation à distance, QR vérifiables | Tests (dont restauration complète sur un PC neuf) |
+| **SMS** | Reçus aux membres | Passerelle HTTP générique testée ; Orange : **non testé** avec un vrai compte |
+| **Licences** | Essai 60 jours, licences signées | Tests |
+| **Installateur Windows** | `Grenier-Pro-Setup-2.0.0.exe` | Contenu et démarrage vérifiés ; **pas encore installé sur un vrai PC Windows** |
+| **Hébergement** | Docker + HTTPS automatique | Image construite et démarrée ; HTTPS : **à faire avec votre domaine** |
+| **Langues** | Mooré, dioula, fulfulde | Chaîne de traduction prête ; **traductions à faire par des locuteurs natifs** (`docs/traduction`) |
 
-Tests automatiques : 42 (30 d'origine + 12 nouveaux), tous réussis — `cd app && node --test tests/*.test.js`.
+Tests : 60 tests de l'API (`cd app && node --test tests/*.test.js`) et un parcours de 28 étapes dans un vrai navigateur
+(`node tests-e2e/parcours.cjs`), tous réussis.
 
-## 2. Avant tout : vos clés de licence
+## 2. Vos clés de licence
 
-Les licences sont signées avec une **clé privée** que vous seul détenez. L'installateur contient la clé publique
-correspondante (`app/server/licence-cle-publique.pem`).
-
-- Rangez `grenier-cle-privee.pem` **hors ligne** (clé USB chiffrée + une copie dans un coffre). Ne la mettez jamais
-  dans le dépôt, un e-mail ou un installateur. Celui qui la possède peut émettre des licences.
-- Si elle est perdue ou divulguée : `node outils-editeur/licence.js cles <dossier-secret>` crée une nouvelle paire
-  (supprimez d'abord l'ancienne clé publique) ; reconstruisez l'installateur et réémettez les licences de vos clients.
-
-Émettre une licence (une ligne de texte à envoyer au client) :
+Les licences sont signées avec votre **clé privée** (`grenier-cle-privee.pem`). Rangez-la **hors ligne** avec une copie
+de secours ; ne la mettez jamais dans le dépôt, un e-mail ou un installateur. Émettre une licence :
 
 ```bash
 node outils-editeur/licence.js emettre /chemin/grenier-cle-privee.pem --client "Coopérative Wend-Panga" --offre cooperative --jusqua 2027-12-31
 ```
 
-`--offre` : `starter`, `pro` ou `cooperative`. Sans `--jusqua`, la licence n'expire pas (licence perpétuelle +
-maintenance annuelle). Le client la colle dans **Contrôle → Licence** (ou `Administration` → `admin.js licence fichier.txt`).
+Le client la colle dans **Paramètres → Licence**. Sans licence : 60 jours d'essai, puis lecture seule.
+Clé perdue ou divulguée : `node outils-editeur/licence.js cles <dossier-secret>` (nouvelle paire), reconstruire
+l'installateur, réémettre les licences.
 
-> Limite honnête : le code de Grenier est en JavaScript lisible. La licence arrête l'usage non autorisé ordinaire
-> (copie chez un autre client, passage à une offre supérieure), pas un informaticien déterminé à modifier le code.
-> Le contrat de licence reste votre protection principale.
+## 3. Le serveur en ligne (indispensable pour les services en ligne)
 
-## 3. Scénario A — installation chez un client (Windows)
-
-1. **Fabriquer l'installateur** (Linux, macOS ou WSL, avec `makensis`, `curl`, `unzip`) :
-   ```bash
-   ./build/construire-installeur.sh
-   ```
-   Résultat : `dist/Grenier-Pro-Setup-1.1.0.exe` et son empreinte `.sha256` (à communiquer au client).
-   Node.js est téléchargé depuis nodejs.org et son empreinte vérifiée. Pour signer : `CERT_PFX=… CERT_PASS=…`
-   (voir `docs/AVERTISSEMENT-WINDOWS.md`).
-2. **Installer** sur le poste principal (pas besoin de droits administrateur). Cocher « Démarrer Grenier avec Windows »
-   si d'autres postes ou téléphones s'y connectent.
-3. **Premier lancement** : créer l'entreprise (compte propriétaire), puis Paramètres (IFU, RCCM, TVA),
-   articles, membres. L'essai de 60 jours démarre.
-4. **Licence** : émettez-la (§ 2) et collez-la dans Contrôle → Licence.
-5. **Équipe** : Paramètres → Équipe (gérant, magasinier, comptable, agent coopérative).
-6. **Téléphones des agents** : même Wi-Fi que le poste, ouvrir `http://<adresse affichée>:3000/terrain/`,
-   se connecter, « Ajouter à l'écran d'accueil ». Voir la limite du § 8 sur le réseau local.
-7. **Sauvegarde externe** : montrer au client Paramètres → Sauvegarde → « Télécharger une sauvegarde » chaque semaine.
-
-**Mise à jour d'un client 1.0** : lancer le nouvel installateur. La base est mise à niveau automatiquement au démarrage
-(nouvelles colonnes et tables ajoutées, rien n'est supprimé). Si la 1.0 était installée dans un autre dossier,
-la désinstaller d'abord (les données dans Documents ne sont pas touchées). Le client passe en **essai de 60 jours** :
-envoyez-lui sa licence.
-
-## 4. Scénario B — serveur hébergé (abonnements, registre Grenier Trace)
-
-Un VPS Linux (2 Go de RAM suffisent pour commencer), un nom de domaine, Docker.
+Un petit serveur Linux (VPS, 2 Go de RAM), un nom de domaine, Docker :
 
 ```bash
 git clone <ce dépôt> && cd grenier-pro/hebergement
 cp .env.exemple .env                     # DOMAINE=grenier.votre-domaine.bf, EMAIL_ADMIN=…
-docker compose up -d --build             # HTTPS automatique (Let's Encrypt) dès que le DNS pointe vers le serveur
+cp config/reglages.exemple.json config/reglages.json   # puis remplir (ou garder {} au départ)
+docker compose up -d --build             # HTTPS automatique dès que le DNS pointe vers le serveur
 ```
 
-- Inscription libre, **essai de 30 jours**, puis lecture seule jusqu'à activation :
+Ce serveur sert à la fois :
+* d'**édition hébergée** (inscription, 30 jours d'essai, `docker compose exec grenier node server/admin.js statut <entreprise> active 2027-06-30`) ;
+* de **Grenier en ligne** pour les installations locales : QR vérifiables, sauvegardes chiffrées, consultation à
+  distance, marché, USSD. Pour chaque client installé :
   ```bash
-  docker compose exec grenier node server/admin.js statut <entreprise> active 2027-06-30
-  docker compose exec grenier node server/admin.js offre <entreprise> cooperative
+  docker compose exec grenier node server/admin.js registre-creer coop-wend-panga "Coopérative Wend-Panga"
   ```
-- Les QR des clients hébergés pointent directement vers `https://DOMAINE/v/…` (variable `GRENIER_PUBLIC_URL`, réglée par docker-compose).
-- **Sauvegardes** : Grenier en fait une par jour dans son volume (30 jours). Copiez-les hors du serveur :
-  configurez `rclone`, puis `crontab` → `30 2 * * * DEST=distant:grenier /chemin/hebergement/sauvegarde-externe.sh`.
-- Mise à jour : `git pull && docker compose up -d --build` (la base se met à niveau toute seule).
+  → affiche une **clé** `grt_…` (une seule fois) à transmettre au client.
+* Sauvegardes du serveur : `hebergement/sauvegarde-externe.sh` chaque nuit (rclone) — **testez une restauration**.
 
-## 5. QR vérifiables pour un client installé (registre Grenier Trace)
+## 4. Installation chez un client (Windows)
 
-Le serveur hébergé du § 4 sert aussi de **registre** pour les installations locales.
+1. Fabriquer l'installateur : `./build/construire-installeur.sh` → `dist/Grenier-Pro-Setup-2.0.0.exe` + `.sha256`.
+2. Installer sur le poste principal (sans droits administrateur) ; cocher « Démarrer avec Windows » si des téléphones s'y connectent.
+3. Premier lancement : créer l'entreprise (ou **« Restaurer mes données depuis Grenier en ligne »** sur un PC de remplacement).
+4. Paramètres : entreprise (IFU, RCCM, TVA), **Licence**, **Équipe**.
+5. Paramètres → **Grenier en ligne** : adresse `https://grenier.votre-domaine.bf` + clé `grt_…` → « Relier au registre ».
+   Puis **activer la sauvegarde en ligne** : un **code de récupération** s'affiche une seule fois → le faire noter
+   sur papier par le propriétaire, et le ranger hors du bureau. Choisir le **code d'accès à distance**.
+6. Stock → articles avec leur **filière** (karité, sésame…) ; Coopérative → membres avec leur **téléphone**.
+7. Téléphones des agents : ouvrir `http://<adresse affichée au démarrage>:3000/terrain`, se connecter, « Ajouter à
+   l'écran d'accueil ». Sur le réseau local (http), les saisies hors ligne sont gardées, mais **l'onglet ne doit pas
+   être fermé** pendant la tournée ; avec l'édition hébergée (https), l'application se rouvre sans réseau.
 
-1. Sur le serveur : `docker compose exec grenier node server/admin.js registre-creer coop-wend-panga "Coopérative Wend-Panga"`
-   → affiche une clé `grt_…` (une seule fois).
-2. Chez le client : **Contrôle → Traçabilité en ligne** : adresse `https://DOMAINE` + la clé → « Relier au registre ».
-3. Les lots sont publiés automatiquement (toutes les 10 minutes quand internet est là). Seules partent les informations
-   publiques : produit, lot, dates, villages d'origine, nombre de producteurs. **Jamais** de noms de producteurs, de clients ni de prix.
-4. **Réimprimer** les étiquettes QR des lots en stock (Traçabilité → lot → étiquette) : elles pointent désormais vers
-   `https://DOMAINE/v/coop-wend-panga/<lot>/<jeton>`.
+Mise à jour d'un client 1.x : lancer le nouvel installateur ; la base est mise à niveau automatiquement au démarrage.
 
-Un client qui scanne voit « ✔ Lot authentique » (ou « ⚠ PÉRIMÉ »), ou « ✖ Code non reconnu » pour un faux code.
-Un QR photocopié reste lisible (c'est le cas de tous les QR) : le compteur de vérifications signale les copies massives.
+## 5. Qualité
+Menu **Qualité**. Trois listes HACCP sont proposées (réception, production, hygiène quotidienne) et modifiables
+(Listes de contrôle). Un **point critique** non conforme, ou une **analyse de laboratoire hors limite**, bloque le lot :
+il n'est plus vendu ni utilisé, et la page publique du QR indique « retiré de la vente ». Seuls le propriétaire et le
+gérant libèrent un lot, avec un motif (journalisé). Former l'équipe à faire le contrôle d'hygiène **chaque jour**.
 
-## 6. Reçus par SMS
-
-1. Choisir une passerelle SMS (agrégateur local ou Orange SMS API) et ouvrir un compte : nom d'expéditeur, crédit SMS.
-2. Configurer `reglages.json` (installation) ou `hebergement/config/reglages.json` (serveur) :
-   ```json
-   { "sms": { "fournisseur": "http", "url": "https://passerelle.exemple/api/send", "entetes": { "X-Api-Key": "…" }, "expediteur": "COOPWP" } }
-   ```
-   Le mode `http` envoie `POST {"to": "+226…", "message": "…", "sender": "…"}`. Si votre passerelle attend un autre
-   format, l'adaptation tient en quelques lignes dans `app/server/notify.js` (fonction `sendHttp`).
-   Pour Orange : `{ "fournisseur": "orange", "client_id": "…", "client_secret": "…", "numero_expediteur": "+226…", "nom_expediteur": "COOPWP" }`
-   — **à valider avec un vrai compte avant de le proposer** (non testé).
-3. Relancer Grenier, puis **Contrôle → SMS** : cocher « Envoyer un SMS au membre… ». Faire une livraison test vers votre numéro.
-
-Sans passerelle (`"journal"`, par défaut), les messages sont préparés et visibles dans Contrôle → SMS, mais pas envoyés.
-Une coupure d'internet ne bloque jamais la saisie : les SMS attendent et partent au retour de la connexion (5 essais).
-Les numéros à 8 chiffres reçoivent l'indicatif +226 (modifiable : `"indicatif": "223"` pour le Mali, etc.).
+## 6. SMS aux membres
+`reglages.json` → `"sms"` (exemple dans `hebergement/config/reglages.exemple.json`). Le format HTTP générique envoie
+`POST {to, message, sender}` ; pour une passerelle différente, adapter `sendHttp` dans `app/server/notify.js`.
+Puis Paramètres → SMS → cocher l'envoi. Tester avec votre numéro avant d'activer pour les membres.
 
 ## 7. Mobile money
+1. Signer avec un **agrégateur de paiement** (paiements sortants vers Orange Money, Moov Money…) : clés d'API, frais,
+   compte marchand approvisionné.
+2. `reglages.json` → `"paiement": { "fournisseur": "http", "url": …, "entetes": …, "secret_rappel": … }` et
+   `adresse_publique` (édition hébergée : `GRENIER_PUBLIC_URL`). Grenier envoie
+   `POST { reference, amount, currency: "XOF", phone, operator, callback_url }` et attend le rappel signé
+   `POST /api/payments/callback { reference, status, transaction_id }` (en-tête `X-Grenier-Signature` = HMAC-SHA256 du
+   corps). Chaque agrégateur ayant son format, prévoir **une petite adaptation** de `sendHttp` et de la lecture du rappel
+   dans `app/server/modules/paiements.js`, puis **des essais avec de petits montants**.
+3. Le rappel doit pouvoir joindre Grenier depuis internet : en pratique, **édition hébergée** (ou installation locale
+   rendue accessible en HTTPS).
+4. Pour former les équipes sans argent réel : `"paiement": { "fournisseur": "simulation" }`.
 
-En 1.1, un paiement Orange Money / Moov Money / Coris Money est **enregistré avec la référence de la transaction**
-(obligatoire dans Terrain), et le membre reçoit un SMS avec cette référence. Le **versement automatique** depuis Grenier
-nécessite un contrat avec un agrégateur de paiement (clés d'API, frais, conformité) : c'est la prochaine étape (§ 10),
-l'architecture (file d'attente, références uniques, journal) est prête pour l'accueillir.
+## 8. USSD
+Auprès d'une passerelle USSD (opérateur ou agrégateur, format Africa's Talking), demander un **code USSD** et le faire
+pointer vers `https://grenier.votre-domaine.bf/api/ussd?cle=<ussd.cle>`. Chaque coopérative active l'USSD dans
+Paramètres → Grenier en ligne (les nom, numéro et solde des membres sont alors envoyés au serveur : **prévenir les
+membres**). Menu : solde, dernières livraisons, derniers paiements, prix d'achat.
 
-## 8. Limites connues
+## 9. Crédit, Marché, langues
+* **Crédit** : présenter le module aux caisses populaires / IMF de la zone ; le récépissé imprimé porte les signatures
+  du magasinier, du déposant et du prêteur ; le dossier de crédit s'imprime en un clic.
+* **Marché** : la page publique `https://grenier.votre-domaine.bf/marche` est à diffuser aux acheteurs
+  (transformateurs, exportateurs, cantines). Le partage des prix pour l'observatoire est volontaire (Marché → Prix).
+* **Langues** : faire traduire `docs/traduction/textes-a-traduire.csv` par des locuteurs natifs (notice dans
+  `docs/traduction/LISEZ-MOI.md`), en commençant par le menu et l'écran Terrain.
 
-- **Terrain sur le réseau local** (`http://192.168…`) : sans HTTPS, le téléphone garde les saisies (stockage du navigateur)
-  mais **ne peut pas rouvrir la page sans réseau**. Consigne aux agents : ne pas fermer l'onglet pendant la tournée.
-  Avec la version hébergée (HTTPS), l'application se rouvre hors ligne (testé).
-- **Paiements** : connexion obligatoire (pour ne jamais payer deux fois).
-- **Annulation d'une livraison** : impossible si son lot a déjà servi (production, vente, perte) ; enregistrer une perte ou un ajustement.
-- **Interface principale** : son code source Angular n'était pas dans l'installateur 1.0.02 ; les nouveautés sont donc dans
-  deux pages séparées (Terrain, Contrôle) reliées au menu. Avec le code source (`source/frontend/`), on peut les intégrer
-  directement (par exemple le bouton « Annuler » dans l'onglet Coopérative).
-- **Installateur Windows** : fabriqué et vérifié (contenu, démarrage de l'application), mais pas encore installé sur un
-  vrai PC Windows — à faire avant le premier client (§ 11).
-- Une installation locale et le serveur hébergé ne partagent que les lots publiés (traçabilité). Il n'y a pas encore de
-  synchronisation complète des données entre les deux.
-
-## 9. Défauts de la 1.0 corrigés
-
-| Défaut | Correction |
-|---|---|
-| Paiement d'un membre non plafonné, trop-payé invisible au tableau de bord | Plafonné au solde dû ; dépassement = **avance** explicite (propriétaire/gérant), visible (tableau de bord, alertes, Contrôle) |
-| Livraisons et paiements impossibles à corriger, pas de journal | Annulation motivée (propriétaire/gérant), conservée ; **journal** de toutes les actions et des connexions refusées |
-| Dates futures acceptées | Refusées sur toutes les opérations (1 jour de marge pour le fuseau horaire) |
-| QR non vérifiables | Jeton par lot + page de vérification + registre |
-| Licence modifiable par le client (`admin.js offre/statut`) | Licence signée (Ed25519) ; dans l'édition installée, c'est elle qui fixe l'offre |
-| `Administration.bat` ne transmettait pas le dossier des données à `admin.js` (les commandes agissaient sur une base vide) | Corrigé ; `admin.js` lit les mêmes réglages que le serveur |
-| Service worker : la mise en cache pouvait mélanger les pages | Pages autonomes exclues, caches séparés |
-
-## 10. Prochaines étapes de la feuille de route
-
-1. **Pilote** : 2 à 3 coopératives, un mois, suivi chaque semaine.
-2. **Versement mobile money automatique** (agrégateur), **USSD** pour consulter son solde sans smartphone.
-3. **Synchronisation complète** installation locale ↔ serveur (sauvegarde en ligne, consultation à distance).
-4. **Grenier Qualité** : listes HACCP, résultats de laboratoire rattachés au lot.
-5. **Grenier Crédit** : récépissés d'entrepôt pour le warrantage, dossier de crédit partagé avec l'accord du client.
-6. **Marché et Observatoire**, interface en mooré, dioula et fulfulde, autres pays (devises, TVA).
+## 10. Limites connues
+* Terrain sur réseau local en http : ne pas fermer l'onglet pendant la tournée (voir § 4.7).
+* Synchronisation : sauvegarde, consultation à distance, traçabilité, marché et USSD ; **pas** de saisie simultanée
+  d'une même entreprise sur plusieurs installations.
+* Facture électronique certifiée : à vérifier auprès de la DGI selon le client ; non incluse.
+* Une seule devise (FCFA) et un taux de TVA par entreprise.
+* La licence protège contre l'usage non autorisé ordinaire, pas contre un informaticien qui modifierait le code :
+  le contrat reste la protection principale.
 
 ## 11. Liste de contrôle avant le premier client payant
-
-- [ ] Installer `Grenier-Pro-Setup-1.1.0.exe` sur un vrai PC Windows 10 et 11 : installation, raccourcis, démarrage,
-      accès depuis un téléphone (pare-feu), mise à jour par-dessus la 1.0, désinstallation (données conservées).
-- [ ] Clé privée de licence rangée hors ligne, avec une copie.
-- [ ] Serveur hébergé : domaine, HTTPS, sauvegarde externe testée **avec une restauration**.
-- [ ] Passerelle SMS testée avec un vrai numéro (et le coût par SMS connu).
-- [ ] Contrat (licence, maintenance, données, réversibilité) relu par un juriste ; formalités de protection des données
-      personnelles (CIL) ; vérifier auprès de la DGI l'obligation éventuelle de facture électronique certifiée.
-- [ ] Prix confirmés auprès de 5 prospects (voir `OFFRE-COMMERCIALE.md`).
+- [ ] Installer `Grenier-Pro-Setup-2.0.0.exe` sur Windows 10 et 11 : installation, démarrage, accès téléphone (pare-feu),
+      mise à jour par-dessus 1.x, désinstallation (données conservées).
+- [ ] Serveur en ligne : domaine, HTTPS, sauvegarde externe **avec une restauration testée**.
+- [ ] Sur une installation de test : relier au serveur, activer la sauvegarde en ligne, **restaurer sur un autre PC**.
+- [ ] SMS : test réel (coût par SMS connu). Mobile money : contrat + adaptation + essais de petits montants.
+- [ ] Contrat (licence, maintenance, données, réversibilité) relu par un juriste ; déclaration à la CIL (données
+      personnelles des membres) ; vérification DGI (facture électronique).
+- [ ] Traduction de l'écran Terrain dans la langue des agents (au moins).
+- [ ] 2 à 3 pilotes d'un mois avec un suivi chaque semaine.

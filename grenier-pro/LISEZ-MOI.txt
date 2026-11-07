@@ -17,17 +17,19 @@ adresse e-mail, mot de passe. C'est le compte du PROPRIÉTAIRE : notez ce mot de
 Puis, dans l'ordre : Paramètres (IFU, RCCM, TVA) > Stock (articles) > Coopérative
 (membres, livraisons, paiements) > Production > Ventes > Traçabilité.
 
-NOUVEAU DANS LA VERSION 1.1
+NOUVEAU DANS LA VERSION 2.0
 ---------------------------
-- TERRAIN (menu Terrain, ou http://<adresse>/terrain/ sur un téléphone) : les agents
-  saisissent les livraisons des membres, même sans connexion ; tout part au retour du réseau.
-- CONTRÔLE (menu Contrôle, propriétaire et gérant) : annuler une livraison ou un paiement
-  saisi par erreur (avec un motif), accorder une avance, consulter le journal des actions,
-  activer les reçus par SMS, relier les QR codes au registre en ligne, saisir la licence.
-- Un paiement à un membre ne peut plus dépasser ce qui lui est dû (sauf avance).
-- Une opération ne peut plus être datée dans le futur.
-- LICENCE : sans licence, Grenier fonctionne 60 jours en essai, puis passe en lecture seule
-  (consultation possible, plus de saisie). Collez la licence reçue dans Contrôle > Licence.
+Nouvelle interface (plus rapide, adaptée au téléphone), et de nouveaux menus :
+- QUALITÉ : contrôles HACCP (réception, production, hygiène), analyses de laboratoire.
+  Un lot non conforme est BLOQUÉ : il n'est plus vendu ni utilisé en production.
+- CRÉDIT : récépissés d'entrepôt (warrantage) et dossier de crédit à imprimer pour la banque.
+- MARCHÉ : publier des offres de vente, recevoir les contacts d'acheteurs, prix du marché.
+- COOPÉRATIVE > MOBILE MONEY : payer les membres sur leur téléphone (avec un agrégateur).
+- TERRAIN : saisie des livraisons sur téléphone, même sans réseau.
+- PARAMÈTRES > GRENIER EN LIGNE : sauvegarde en ligne chiffrée, consultation à distance,
+  QR vérifiables, solde des membres par USSD.
+- Annulations motivées, avances aux membres et journal : onglets Coopérative et Paramètres.
+- LICENCE : sans licence, 60 jours d'essai, puis lecture seule (Paramètres > Licence).
 
 ESSAYER SANS RISQUE
 -------------------
@@ -74,7 +76,7 @@ L'application s'ouvre alors dans sa propre fenêtre, comme un logiciel.
 Sur iPhone : Safari > Partager > "Sur l'écran d'accueil".
 (Le poste principal doit rester allumé : les données restent sur cet ordinateur.)
 
-Pour les agents de collecte : ouvrez http://<adresse du poste>:3000/terrain/ sur leur téléphone,
+Pour les agents de collecte : ouvrez http://<adresse du poste>:3000/terrain sur leur téléphone,
 connectez-vous une fois au bureau. Ils peuvent ensuite saisir sans réseau : les livraisons
 attendent sur le téléphone et partent dès qu'il retrouve le réseau du bureau.
 IMPORTANT : sur le réseau local, NE FERMEZ PAS l'onglet Terrain pendant la tournée (sans
@@ -87,7 +89,7 @@ Mise à jour : lancez le nouvel installateur par-dessus l'ancien. Vos données s
 Désinstallation : Paramètres Windows > Applications > Grenier Pro.
 Vos données (dossier Documents) ne sont PAS supprimées.
 
-MISE À JOUR DEPUIS LA VERSION 1.0
+MISE À JOUR DEPUIS UNE VERSION PRÉCÉDENTE
 ---------------------------------
 Les données sont reprises automatiquement (aucune perte). Si la version 1.0 a été installée
 dans un autre dossier, désinstallez-la d'abord (Paramètres Windows > Applications) : vos données
@@ -95,7 +97,7 @@ dans Documents ne sont pas touchées. Pensez à demander votre licence à votre 
 
 MOT DE PASSE OUBLIÉ
 -------------------
-Un utilisateur : le propriétaire lui en donne un nouveau (Paramètres > Équipe).
+Un utilisateur : le propriétaire lui en donne un nouveau (Paramètres > Équipe > Nouveau mot de passe).
 Le propriétaire : voir docs\GUIDE-ADMIN.md (commande "mot-de-passe").
 
 PROBLÈMES COURANTS

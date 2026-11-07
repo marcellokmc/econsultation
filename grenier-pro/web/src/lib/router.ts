@@ -13,7 +13,8 @@ window.addEventListener('popstate', () => subs.forEach((f) => f()));
 export function useLocation() {
   const [, set] = useState(0);
   useEffect(() => { const f = () => set((x) => x + 1); subs.add(f); return () => { subs.delete(f); }; }, []);
-  return { path: location.pathname, query: new URLSearchParams(location.search) };
+  // « /terrain/ » et « /terrain » sont la même page
+  return { path: location.pathname.replace(/\/+$/, '') || '/', query: new URLSearchParams(location.search) };
 }
 
 /** match('/ventes/factures/:id', '/ventes/factures/12') → { id: '12' } */

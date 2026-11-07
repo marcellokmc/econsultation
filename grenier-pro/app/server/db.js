@@ -118,7 +118,7 @@ const COLUMNS_V11 = [
   ['member_payouts', 'status', "TEXT NOT NULL DEFAULT 'active'"], ['member_payouts', 'kind', "TEXT NOT NULL DEFAULT 'paiement'"],
   ['member_payouts', 'reference', 'TEXT'], ['member_payouts', 'client_ref', 'TEXT'], ['member_payouts', 'cancel_reason', 'TEXT'],
   ['member_payouts', 'cancelled_at', 'TEXT'], ['member_payouts', 'cancelled_by', 'INTEGER'], ['member_payouts', 'user_id', 'INTEGER'],
-  ['members', 'client_ref', 'TEXT'],
+  ['members', 'client_ref', 'TEXT'], ['items', 'filiere', 'TEXT'],
   ['lots', 'public_token', 'TEXT'], ['lots', 'published_at', 'TEXT'], ['lots', 'scans', 'INTEGER NOT NULL DEFAULT 0'], ['lots', 'last_scan_at', 'TEXT'],
   ['companies', 'sms_enabled', 'INTEGER NOT NULL DEFAULT 0'], ['companies', 'registry_key', 'TEXT'], ['companies', 'registry_slug', 'TEXT'],
 ];

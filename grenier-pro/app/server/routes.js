@@ -24,7 +24,7 @@ export function qrSvg(text) {
   const n = q.getModuleCount();
   let p = '';
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) p += `M${c} ${r}h1v1h-1z`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${n + 4} ${n + 4}" shape-rendering="crispEdges"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><path d="${p}" fill="#000"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${(n + 4) * 8}" height="${(n + 4) * 8}" viewBox="-2 -2 ${n + 4} ${n + 4}" shape-rendering="crispEdges"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><path d="${p}" fill="#000"/></svg>`;
 }
 
 /**
@@ -104,6 +104,12 @@ export function buildRoutes({ S, mode, x = {} }) {
 
   // ---------- session ----------
   add('GET', '/api/me', {}, ({ user, company }) => profile(user, company));
+  add('POST', '/api/me/password', { always: true }, ({ user, token, body }) => {
+    const d = validate(body, { password: { required: true, min: 8, max: 100 } });
+    S.run('UPDATE users SET password=? WHERE id=?', hashPassword(d.password), user.id);
+    S.run('DELETE FROM tokens WHERE user_id=? AND hash<>?', user.id, sha(token)); // ferme les autres sessions
+    return null;
+  });
   add('POST', '/api/auth/logout', { always: true }, ({ token }) => { S.run('DELETE FROM tokens WHERE hash=?', sha(token)); return null; });
   add('GET', '/api/dashboard', {}, ({ company }) => S.dashboard(company.id));
 
@@ -111,6 +117,7 @@ export function buildRoutes({ S, mode, x = {} }) {
   const itemRules = {
     name: { required: true, max: 120 }, kind: { required: true, in: ['mp', 'emb', 'pf'] }, unit: { required: true, max: 20 }, code: { max: 30, label: "code de l'article" },
     alert_qty: { type: 'number', min: 0 }, ref_price: { type: 'integer', min: 0 }, shelf_days: { type: 'integer', min: 0, max: 3650 },
+    filiere: { max: 30, label: 'filière' },
   };
   /** Code de l'article = début du numéro de lot (CODE-AAMMJJ-NNN). Jusqu'à 30 caractères : lettres, chiffres, - et _. */
   const makeCode = (code, name) => {
@@ -122,15 +129,16 @@ export function buildRoutes({ S, mode, x = {} }) {
   add('GET', '/api/items', {}, ({ company, query }) => S.listItems(company.id, query.kind));
   add('POST', '/api/items', { roles: RULE.items }, ({ company, body }) => {
     const d = validate(body, itemRules);
-    const id = S.lastId(S.run('INSERT INTO items(company_id,name,kind,unit,code,alert_qty,ref_price,shelf_days) VALUES (?,?,?,?,?,?,?,?)',
-      company.id, d.name, d.kind, d.unit, makeCode(d.code, d.name), d.alert_qty ?? 0, d.ref_price ?? 0, d.shelf_days ?? 0));
+    const id = S.lastId(S.run('INSERT INTO items(company_id,name,kind,unit,code,alert_qty,ref_price,shelf_days,filiere) VALUES (?,?,?,?,?,?,?,?,?)',
+      company.id, d.name, d.kind, d.unit, makeCode(d.code, d.name), d.alert_qty ?? 0, d.ref_price ?? 0, d.shelf_days ?? 0, d.filiere ?? null));
     return created(S.getItem(company.id, id));
   });
   add('PUT', '/api/items/:id', { roles: RULE.items }, ({ company, params, body }) => {
     const it = S.rawItem(company.id, Number(params.id));
     const d = validate(body, itemRules, { partial: true });
-    S.run('UPDATE items SET name=?, unit=?, code=?, alert_qty=?, ref_price=?, shelf_days=? WHERE id=?', d.name ?? it.name, d.unit ?? it.unit,
-      d.code !== undefined ? makeCode(d.code, d.name ?? it.name) : it.code, d.alert_qty ?? it.alert_qty, d.ref_price ?? it.ref_price, d.shelf_days ?? it.shelf_days, it.id);
+    S.run('UPDATE items SET name=?, unit=?, code=?, alert_qty=?, ref_price=?, shelf_days=?, filiere=? WHERE id=?', d.name ?? it.name, d.unit ?? it.unit,
+      d.code !== undefined ? makeCode(d.code, d.name ?? it.name) : it.code, d.alert_qty ?? it.alert_qty, d.ref_price ?? it.ref_price, d.shelf_days ?? it.shelf_days,
+      d.filiere !== undefined ? d.filiere : it.filiere, it.id);
     return S.getItem(company.id, it.id);
   });
 

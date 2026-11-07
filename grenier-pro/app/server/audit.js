@@ -1,6 +1,6 @@
 // Journal des actions : qui a fait quoi et quand (lecture : Contrôle > Journal).
 export const AUDIT_LABELS = {
-  'POST /api/auth/login': 'Connexion', 'POST /api/auth/register': "Création de l'entreprise", 'POST /api/auth/logout': 'Déconnexion',
+  'POST /api/auth/login': 'Connexion', 'POST /api/auth/register': "Création de l'entreprise", 'POST /api/auth/logout': 'Déconnexion', 'POST /api/me/password': 'Mot de passe changé',
   'POST /api/items': 'Nouvel article', 'PUT /api/items/:id': 'Article modifié',
   'POST /api/stock/receipts': 'Entrée en stock', 'POST /api/lots/:id/loss': 'Perte enregistrée',
   'POST /api/productions': 'Production',

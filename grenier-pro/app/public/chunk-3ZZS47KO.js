@@ -1,1 +1,0 @@
-import{Na as o,O as i}from"./chunk-OY7NDJZY.js";var s=class e{msg=o(null);t;show(t,r=!1){this.msg.set({text:t,error:r}),clearTimeout(this.t),this.t=setTimeout(()=>this.msg.set(null),4e3)}error(t){this.show(t,!0)}static \u0275fac=function(r){return new(r||e)};static \u0275prov=i({token:e,factory:e.\u0275fac,providedIn:"root"})};export{s as a};

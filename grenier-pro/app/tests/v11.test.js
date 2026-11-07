@@ -270,14 +270,12 @@ test('registre Grenier Trace : une installation locale publie ses lots, le QR se
   await local.close(); await cloud.close();
 });
 
-test('pages autonomes : collecte terrain et contrôle sont servies', async () => {
+test('interface : toutes les adresses de l’application (terrain, fiches…) renvoient la page, jamais le code serveur', async () => {
   const t = await boot();
-  for (const p of ['/terrain/', '/controle/']) {
+  for (const p of ['/terrain', '/cooperative/membres/3', '/t/slug/LOT-1']) {
     const r = await fetch(t.base + p);
     assert.equal(r.status, 200); assert.match(await r.text(), /<!doctype html>/i);
   }
-  const redir = await fetch(t.base + '/terrain', { redirect: 'manual' });
-  assert.equal(redir.status, 301);
   const trav = await fetch(t.base + '/..%2f..%2fserver%2findex.js');
   assert.ok(!(await trav.text()).includes('startServer'));
   await t.close();

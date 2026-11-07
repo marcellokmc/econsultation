@@ -114,9 +114,9 @@ async function pick(select, prefix) {
   await step('traçabilité : fiche de lot et étiquettes', async () => {
     await go('/tracabilite'); await p.locator('a:has-text("Tracer")').first().click();
     await p.waitForSelector('h2:has-text("Origine")'); await p.waitForSelector('h2:has-text("Distribution")'); await shot(p, '05-trace');
-    await p.click('a:has-text("Étiquettes QR")'); await p.waitForSelector('.label img'); await p.waitForLoadState('networkidle');
-    const ok = await p.locator('.label img').first().evaluate((img) => img.complete && img.naturalWidth > 0);
-    expect(ok, 'QR non affiché'); await shot(p, '06-etiquettes');
+    await p.click('a:has-text("Étiquettes QR")'); await p.waitForSelector('.label img');
+    await p.waitForFunction(() => { const i = document.querySelector('.label img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 8000 }).catch(() => { throw new Error('QR non affiché'); });
+    await shot(p, '06-etiquettes');
   });
   await step('coopérative : tableau de bord', async () => { await go('/cooperative'); await p.waitForSelector('h2:has-text("Soldes à payer")'); await shot(p, '07-coop'); });
   await step('coopérative : nouvelle livraison', async () => {
@@ -170,6 +170,25 @@ async function pick(select, prefix) {
     await p.waitForSelector('.badge:has-text("Lot bloqué")'); await shot(p, '16-lot-bloque');
     await p.click('button:has-text("Libérer")'); await dialog().locator('#f-note').fill('Contre-analyse conforme'); await dialog().locator('button:has-text("Libérer")').click();
     await p.waitForSelector('.badge:has-text("Utilisable")');
+  });
+  await step('crédit : récépissé d’entrepôt (lot gagé), clôture, dossier de crédit', async () => {
+    await go('/credit'); await p.click('button:has-text("Nouveau récépissé")');
+    await dialog().locator('#f-lender').fill('Caisse populaire de Léo');
+    await dialog().locator('.lines input[type=checkbox]').first().check();
+    await dialog().locator('#f-valuation_price').fill('100'); await dialog().locator('#f-loan_amount').fill('1000');
+    await dialog().locator('button:has-text("Émettre le récépissé")').click();
+    await p.waitForURL(/\/credit\/recepisses\/\d+/); await p.waitForSelector('text=Récépissé d\'entrepôt'); await shot(p, '18-recepisse');
+    await p.click('button:has-text("Clôturer")'); await dialog().locator('#f-note').fill('Prêt remboursé'); await dialog().locator('button:has-text("Clôturer")').click();
+    await p.waitForSelector('text=Clôturé le');
+    await go('/credit'); await p.click('[role=tab]:has-text("Dossier de crédit")'); await p.waitForSelector('text=Évolution mensuelle'); await shot(p, '19-dossier');
+  });
+  await step('marché : sans liaison en ligne, message clair ; page publique accessible sans compte', async () => {
+    await go('/marche'); await p.waitForSelector('.msg.err:has-text("Reliez Grenier")');
+    const pub = await browser.newPage(); watch(pub, 'marche-public');
+    await pub.goto(B + '/marche'); await pub.waitForSelector('h1:has-text("Marché Grenier")');
+    await pub.click('[role=tab]:has-text("Publier une demande")'); await pub.fill('#f-buyer', 'Huilerie test'); await pub.fill('#f-phone', '70000000'); await pub.fill('#f-product', 'Sésame');
+    await pub.click('button:has-text("Publier la demande")'); await pub.waitForSelector('.toast:has-text("Demande publiée")');
+    await pub.click('.chips button:has-text("Demandes")'); await pub.waitForSelector('text=Recherche : Sésame'); await shot(pub, '20-marche-public'); await pub.close();
   });
   await step('paramètres : chaque onglet', async () => {
     await go('/parametres');

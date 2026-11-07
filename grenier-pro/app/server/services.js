@@ -1,5 +1,6 @@
 import { biz, r3, today, addDays, monthsBack } from './lib.js';
 import { publicToken } from './db.js';
+import { dueAlerts } from './modules/credit.js';
 
 export const PLANS = {
   starter: { label: 'Starter', max_users: 3, coop: false },
@@ -381,6 +382,7 @@ export function makeServices(db, tx, hooks = {}) {
     }
     late.forEach((i) => alerts.push({ type: 'late_invoice', message: `Facture ${i.number} en retard : ${nf.format(i.balance)} FCFA` }));
     for (const l of all("SELECT code FROM lots WHERE company_id=? AND quality_status='bloque' AND qty_remaining>0", cid)) alerts.push({ type: 'blocked', lot: l.code, message: `Lot ${l.code} bloqué par la qualité` });
+    alerts.push(...dueAlerts({ all }, cid));
     const adv = listMembers(cid).filter((m) => m.balance < 0);
     if (adv.length) alerts.push({ type: 'member_advance', message: `${adv.length} membre(s) doivent de l'argent à la coopérative (avances) : ${nf.format(adv.reduce((s, m) => s - m.balance, 0))} FCFA` });
     return {

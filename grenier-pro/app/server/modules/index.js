@@ -5,8 +5,10 @@
 import * as qualite from './qualite.js';
 import * as cloud from './cloud.js';
 import * as paiements from './paiements.js';
+import * as credit from './credit.js';
+import * as marche from './marche.js';
 
-const MODULES = [qualite, cloud, paiements];
+const MODULES = [qualite, cloud, paiements, credit, marche];
 export const MODULE_SCHEMAS = MODULES.map((m) => m.schema).filter(Boolean);
 export const MODULE_ROUTES = MODULES.map((m) => m.routes).filter(Boolean);
 /** Tâches de fond : jobs({ S, db, x }) retourne des minuteries. */

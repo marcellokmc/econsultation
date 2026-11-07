@@ -329,6 +329,7 @@ export function buildRoutes({ S, mode, x = {} }) {
   });
 
   // ---------- modules (qualité, crédit, marché, paiements, synchronisation…) ----------
+  x.qrSvg = qrSvg;
   for (const register of MODULE_ROUTES) register({ add, S, RULE, mode, x, created });
 
   return { routes, RULE, isWritable };

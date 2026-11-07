@@ -14,6 +14,8 @@ import { Cooperative, MembrePage, RecuPage } from './pages/Cooperative';
 import { Parametres } from './pages/Parametres';
 import { Terrain } from './pages/Terrain';
 import { Distant } from './pages/Cloud';
+import { PublicReceipt } from './pages/Credit';
+import { MarchePublic } from './pages/Marche';
 import { pages as extraPages } from './pages/extensions';
 
 type NavItem = { href: string; label: string; icon: string; show: (p: Profile) => boolean };
@@ -116,6 +118,10 @@ export function App() {
   const pub = match('/t/:slug/:code', path);
   if (pub) return <PublicTrace slug={pub.slug} code={pub.code} />;
   if (path === '/distant') return <Distant />;
+  const rec = match('/r/:slug/:number/:token', path);
+  if (rec) return <PublicReceipt {...(rec as { slug: string; number: string; token: string })} />;
+  // place de marché publique (acheteurs sans compte) ; connecté, /marche ouvre le module de l'application
+  if (path === '/marche' && state !== 'loading' && !profile) return <><MarchePublic /><ToastHost /></>;
   // la collecte terrain fonctionne sans connexion (données gardées sur le téléphone)
   if (path === '/terrain' && (state === 'offline' || state === 'ready')) return <><Terrain offline={state === 'offline'} /><ToastHost /></>;
   if (state === 'loading') return <div class="authwrap"><div class="authcard"><Loading /></div></div>;

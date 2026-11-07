@@ -1,4 +1,5 @@
 import { hashPassword, today, addDays } from './lib.js';
+import { publicToken } from './db.js';
 
 const MODES = ['Espèces', 'Orange Money', 'Moov Money', 'Coris Money'];
 
@@ -78,5 +79,14 @@ export function seedDemo(S) {
   for (let i = 0; i < 10; i++) check(T[2], null, addDays(today(), -i - 1), i === 4 ? 'Absence de nuisibles' : null);
   const sesLot = S.get("SELECT l.id FROM lots l JOIN items i ON i.id=l.item_id WHERE l.company_id=? AND i.code='SES' ORDER BY l.id DESC LIMIT 1", cid);
   if (sesLot) S.run('INSERT INTO lab_results(company_id,lot_id,lab,analysed_on,parameter,value,unit,limit_text,conforme,reference,user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)', cid, sesLot.id, 'LNSP Ouagadougou', addDays(today(), -5), 'Aflatoxines totales', '1,8', 'µg/kg', '≤ 4', 1, 'BUL-2026-0412', owner);
+  // --- crédit : un récépissé d'entrepôt en cours (warrantage) ---
+  const akaLot = S.get("SELECT l.* FROM lots l JOIN items i ON i.id=l.item_id WHERE l.company_id=? AND i.code='AKA' AND l.qty_remaining>=100 AND l.pledge_id IS NULL ORDER BY l.id DESC LIMIT 1", cid);
+  if (akaLot) {
+    const value = Math.round(akaLot.qty_remaining * 250);
+    const rid = S.lastId(S.run('INSERT INTO warehouse_receipts(company_id,number,lender,issued_on,valuation_price,value,loan_amount,loan_rate,loan_due,warehouse,note,token,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      cid, `RE-${today().slice(0, 4)}-0001`, 'Caisse populaire de Léo', addDays(today(), -40), 250, value, Math.round((value * 0.7) / 1000) * 1000, 12, addDays(today(), 20), 'Magasin de Léo', 'Crédit de campagne karité', publicToken(), owner));
+    S.run('INSERT INTO warehouse_receipt_lots(receipt_id,lot_id,qty) VALUES (?,?,?)', rid, akaLot.id, akaLot.qty_remaining);
+    S.run('UPDATE lots SET pledge_id=? WHERE id=?', rid, akaLot.id);
+  }
   return true;
 }

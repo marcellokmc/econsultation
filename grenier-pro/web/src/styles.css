@@ -47,6 +47,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .side-foot { margin-top: auto; padding: 14px 18px 18px; color: var(--side-muted); font-size: 13px; }
 .side-foot select { background: transparent; color: var(--side-ink); border: 1px solid rgba(255,255,255,.2); border-radius: 8px; padding: 4px 6px; margin-top: 6px; width: 100%; }
 .side-foot select option { color: #1A2030; }
+.side-foot .linkbtn { display: flex; margin-top: 10px; }
 .linkbtn { background: none; border: 0; color: inherit; padding: 6px 0; cursor: pointer; text-decoration: underline; display: inline-flex; gap: 6px; align-items: center; }
 .main { padding: 28px 32px 48px; max-width: 1240px; width: 100%; }
 .pagehead { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; margin-bottom: 18px; }

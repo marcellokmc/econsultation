@@ -10,6 +10,7 @@ import { Badge, Chips, Empty, Field, FormError, Loading, Modal, PageHead, Tabs, 
 type Offer = { id: number; seller: string; region: string | null; product: string; filiere: string | null; qty: number; unit: string; price: number | null; quality: string | null; certifications: string | null; available_on: string | null; phone: string; description: string | null; created_at: string; expires_on: string; status?: string };
 type Req = { id: number; buyer: string; phone?: string; region: string | null; product: string; filiere: string | null; qty: number | null; unit: string | null; price_max: number | null; description: string | null; created_at: string };
 type Browse = { offers: Offer[]; requests: Req[]; filieres: Record<string, string> };
+const FIL: Record<string, string> = { karite: 'Karité', sesame: 'Sésame', cajou: 'Cajou (anacarde)', mangue: 'Mangue', arachide: 'Arachide', mais: 'Maïs', sorgho: 'Sorgho / mil', riz: 'Riz', soja: 'Soja', niebe: 'Niébé', lait: 'Lait', miel: 'Miel', moringa: 'Moringa', hibiscus: 'Bissap (hibiscus)', autre: 'Autre' };
 type Price = { filiere: string; label: string; period: string; price: number; qty: number; sources: number };
 
 function OfferCard({ o, filieres, onContact }: { o: Offer; filieres: Record<string, string>; onContact?: () => void }) {
@@ -138,16 +139,47 @@ function ShareToggle() {
 export function Marche() {
   const [tab, setTab] = useState<'browse' | 'mine' | 'prices'>('browse');
   const role = session.profile!.user.role;
+  const c = session.profile!.company;
+  const needsLink = c.edition === 'local' && !c.registry_connected;
   const tabs: [typeof tab, string][] = [['browse', t('Le marché')]];
   if (can.correct(role) || role === 'accountant') tabs.push(['mine', t('Mes offres et contacts')]);
   tabs.push(['prices', t('Prix du marché')]);
   return (
     <>
       <PageHead title={t('Marché')} sub={t('Vendez vos produits aux acheteurs (transformateurs, exportateurs, cantines…) et suivez les prix payés aux producteurs.')} />
+      {needsLink ? <NotLinked /> : <>
       <Tabs tabs={tabs} value={tab} onChange={setTab} />
       {tab === 'browse' && <BrowseView />}
       {tab === 'mine' && <Mine />}
       {tab === 'prices' && <><Prices /><ShareToggle /></>}
+      </>}
+    </>
+  );
+}
+
+/** Installation locale pas encore reliée à Grenier en ligne : explication + ses propres prix d'achat (calculés sur place). */
+function NotLinked() {
+  const { data } = useApi<{ mine: { filiere: string; period: string; avg_price: number; qty: number }[] }>('/market/share');
+  const admin = can.admin(session.profile!.user.role);
+  return (
+    <>
+      <div class="card" style={{ maxWidth: 820 }}>
+        <h2>{t('Le marché se trouve sur Grenier en ligne')}</h2>
+        <p>{t('Les offres de vente, les demandes d’achat et les prix du marché sont partagés entre toutes les coopératives et tous les acheteurs : ils sont rassemblés sur le serveur Grenier en ligne. Ce logiciel installé n’y est pas encore relié.')}</p>
+        <ol>
+          <li>{t('Votre prestataire crée votre compte Grenier en ligne et vous donne une adresse et une clé.')}</li>
+          <li>{t('Saisissez-les dans Paramètres → Grenier en ligne → « Relier au registre ».')}</li>
+          <li>{t('Revenez ici : vous pourrez publier vos offres et voir les demandes des acheteurs.')}</li>
+        </ol>
+        {admin && <a class="btn" href="/parametres?onglet=trace">{t('Relier à Grenier en ligne')}</a>}
+      </div>
+      <div class="card" style={{ maxWidth: 820 }}>
+        <h2>{t('Vos prix d’achat moyens (3 derniers mois)')}</h2>
+        {!data ? <Loading /> : !data.mine.length ? <p class="muted">{t('Aucun achat avec une filière renseignée. Indiquez la filière de vos matières premières (Stock → Modifier).')}</p> : (
+          <table><thead><tr><th>{t('Filière')}</th><th>{t('Mois')}</th><th class="right">{t('Prix moyen')}</th><th class="right">{t('Volume')}</th></tr></thead>
+            <tbody>{data.mine.map((m) => <tr key={m.filiere + m.period}><td>{t(FIL[m.filiere] ?? m.filiere)}</td><td>{monthLabel(m.period)} {m.period.slice(0, 4)}</td><td class="right num">{fcfa(m.avg_price)}</td><td class="right num">{num(Math.round(m.qty))}</td></tr>)}</tbody></table>
+        )}
+      </div>
     </>
   );
 }

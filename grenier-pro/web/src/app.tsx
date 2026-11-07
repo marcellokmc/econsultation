@@ -44,6 +44,7 @@ const ROUTES: [string, (p: Record<string, string>) => any][] = [
   ['/cooperative/membres/:id', (p) => <MembrePage id={Number(p.id)} />],
   ['/cooperative/recus/:id', (p) => <RecuPage id={Number(p.id)} />],
   ['/parametres', () => <Parametres />],
+  ['/terrain', () => <Terrain offline={false} embedded />],
   ['/controle', () => { navigate('/parametres?onglet=journal', true); return null; }], // ancienne page Contrôle (1.1)
   ...extraPages.flatMap((x) => x.routes),
 ];
@@ -124,7 +125,8 @@ export function App() {
   // place de marché publique (acheteurs sans compte) ; connecté, /marche ouvre le module de l'application
   if (path === '/marche' && state !== 'loading' && !profile) return <><MarchePublic /><ToastHost /></>;
   // la collecte terrain fonctionne sans connexion (données gardées sur le téléphone)
-  if (path === '/terrain' && (state === 'offline' || state === 'ready')) return <><Terrain offline={state === 'offline'} /><ToastHost /></>;
+  // collecte terrain : plein écran hors ligne ou sans session (téléphone d'un agent) ; sinon dans l'application, avec le menu
+  if (path === '/terrain' && (state === 'offline' || (state === 'ready' && !profile))) return <><Terrain offline={state === 'offline'} /><ToastHost /></>;
   if (state === 'loading') return <div class="authwrap"><div class="authcard"><Loading /></div></div>;
   if (state === 'offline') return <div class="authwrap"><div class="authcard"><h1>Grenier</h1><p>{t('Pas de connexion au serveur Grenier.')}</p><p class="muted">{t('Vérifiez que le poste principal est allumé et que vous êtes sur le même réseau.')}</p><p><a class="btn" href="/terrain" data-external>{t('Ouvrir la collecte terrain')}</a></p></div></div>;
   if (state === 'setup' || path === '/inscription') return <><Setup onDone={() => setState('ready')} /><ToastHost /></>;

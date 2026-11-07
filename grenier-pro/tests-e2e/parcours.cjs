@@ -171,8 +171,11 @@ async function pick(select, prefix) {
     await p.click('button:has-text("Libérer")'); await dialog().locator('#f-note').fill('Contre-analyse conforme'); await dialog().locator('button:has-text("Libérer")').click();
     await p.waitForSelector('.badge:has-text("Utilisable")');
   });
+  await step('terrain dans l’application (avec le menu)', async () => {
+    await go('/terrain'); await p.waitForSelector('h1:has-text("Terrain")'); await p.waitForSelector('nav.nav a.active:has-text("Terrain")');
+  });
   await step('crédit : récépissé d’entrepôt (lot gagé), clôture, dossier de crédit', async () => {
-    await go('/credit'); await p.click('button:has-text("Nouveau récépissé")');
+    await go('/credit'); await p.waitForSelector('td:has-text("RE-")'); await p.click('button:has-text("Nouveau récépissé")');
     await dialog().locator('#f-lender').fill('Caisse populaire de Léo');
     await dialog().locator('.lines input[type=checkbox]').first().check();
     await dialog().locator('#f-valuation_price').fill('100'); await dialog().locator('#f-loan_amount').fill('1000');
@@ -182,8 +185,8 @@ async function pick(select, prefix) {
     await p.waitForSelector('text=Clôturé le');
     await go('/credit'); await p.click('[role=tab]:has-text("Dossier de crédit")'); await p.waitForSelector('text=Évolution mensuelle'); await shot(p, '19-dossier');
   });
-  await step('marché : sans liaison en ligne, message clair ; page publique accessible sans compte', async () => {
-    await go('/marche'); await p.waitForSelector('.msg.err:has-text("Reliez Grenier")');
+  await step('marché : sans liaison en ligne, explication + prix d’achat locaux ; page publique accessible sans compte', async () => {
+    await go('/marche'); await p.waitForSelector('h2:has-text("Le marché se trouve sur Grenier en ligne")'); await p.waitForSelector('td:has-text("Karité")');
     const pub = await browser.newPage(); watch(pub, 'marche-public');
     await pub.goto(B + '/marche'); await pub.waitForSelector('h1:has-text("Marché Grenier")');
     await pub.click('[role=tab]:has-text("Publier une demande")'); await pub.fill('#f-buyer', 'Huilerie test'); await pub.fill('#f-phone', '70000000'); await pub.fill('#f-product', 'Sésame');

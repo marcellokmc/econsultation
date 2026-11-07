@@ -17,7 +17,7 @@ Ce guide explique comment mettre Grenier en service et activer chaque module. Or
 | **Grenier en ligne** | Sauvegarde chiffrée + restauration, consultation à distance, QR vérifiables | Tests (dont restauration complète sur un PC neuf) |
 | **SMS** | Reçus aux membres | Passerelle HTTP générique testée ; Orange : **non testé** avec un vrai compte |
 | **Licences** | Essai 60 jours, licences signées | Tests |
-| **Installateur Windows** | `Grenier-Pro-Setup-2.0.0.exe` | Vérifié **sous Wine** (Windows simulé) avec le vrai `node.exe` : installation silencieuse, 6 raccourcis + Bureau, démarrage, démonstration, tous les écrans, sauvegarde, mise à jour 1.1 → 2.0 avec données conservées, désinstallation (données conservées). **À confirmer sur un vrai PC Windows 10/11** (pare-feu, SmartScreen) |
+| **Installateur Windows** | `Grenier-Pro-Setup-2.0.1.exe` | Vérifié **sous Wine** (Windows simulé) avec le vrai `node.exe` : installation silencieuse, 6 raccourcis + Bureau, démarrage, démonstration, tous les écrans, sauvegarde, mise à jour 1.1 → 2.0 avec données conservées, désinstallation (données conservées). **À confirmer sur un vrai PC Windows 10/11** (pare-feu, SmartScreen) |
 | **Hébergement** | Docker + HTTPS automatique | Image construite et démarrée ; HTTPS : **à faire avec votre domaine** |
 | **Langues** | Mooré, dioula, fulfulde | Chaîne de traduction prête ; **traductions à faire par des locuteurs natifs** (`docs/traduction`) |
 
@@ -60,7 +60,7 @@ Ce serveur sert à la fois :
 
 ## 4. Installation chez un client (Windows)
 
-1. Fabriquer l'installateur : `./build/construire-installeur.sh` → `dist/Grenier-Pro-Setup-2.0.0.exe` + `.sha256`.
+1. Fabriquer l'installateur : `./build/construire-installeur.sh` → `dist/Grenier-Pro-Setup-2.0.1.exe` + `.sha256`.
 2. Installer sur le poste principal (sans droits administrateur) ; cocher « Démarrer avec Windows » si des téléphones s'y connectent.
 3. Premier lancement : créer l'entreprise (ou **« Restaurer mes données depuis Grenier en ligne »** sur un PC de remplacement).
 4. Paramètres : entreprise (IFU, RCCM, TVA), **Licence**, **Équipe**.
@@ -122,7 +122,7 @@ membres**). Menu : solde, dernières livraisons, derniers paiements, prix d'acha
   le contrat reste la protection principale.
 
 ## 11. Liste de contrôle avant le premier client payant
-- [ ] Installer `Grenier-Pro-Setup-2.0.0.exe` sur un vrai Windows 10 et 11 (déjà vérifié sous Wine) : avertissement
+- [ ] Installer `Grenier-Pro-Setup-2.0.1.exe` sur un vrai Windows 10 et 11 (déjà vérifié sous Wine) : avertissement
       SmartScreen, autorisation du pare-feu, accès depuis un téléphone du même Wi-Fi.
 - [ ] Serveur en ligne : domaine, HTTPS, sauvegarde externe **avec une restauration testée**.
 - [ ] Sur une installation de test : relier au serveur, activer la sauvegarde en ligne, **restaurer sur un autre PC**.

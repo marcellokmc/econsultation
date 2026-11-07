@@ -18,7 +18,8 @@ const canDeliver = (p: Profile) => ['owner', 'manager', 'coop_agent', 'storekeep
 const canPay = (p: Profile) => ['owner', 'manager', 'accountant', 'coop_agent'].includes(p.user.role);
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-export function Terrain({ offline }: { offline: boolean }) {
+/** embedded : affiché dans l'application (menu à gauche) ; sinon plein écran (téléphone, hors ligne). */
+export function Terrain({ offline, embedded }: { offline: boolean; embedded?: boolean }) {
   useLang();
   const [me, setMe] = useState<Profile | null>(session.profile);
   const [members, setMembers] = useState<TMember[]>([]);
@@ -99,15 +100,24 @@ export function Terrain({ offline }: { offline: boolean }) {
 
   return (
     <div>
-      <div class="topbar" style={{ display: 'flex' }}>
+      {embedded ? (
+        <div class="pagehead"><div><h1>{t('Terrain')}</h1><p>{t('Collecte des livraisons : à utiliser sur le téléphone des agents, même sans réseau.')}</p></div>
+          <span class="small" style={{ whiteSpace: 'nowrap' }}><span class={`dot${online ? '' : ' off'}`} /> {online ? t('En ligne') : t('Hors ligne')}</span></div>
+      ) : <div class="topbar" style={{ display: 'flex' }}>
         <div><b>{t('Grenier Terrain')}</b><div class="small" style={{ opacity: .85 }}>{me.user.name} · {me.company.name}</div></div>
         <span class="sp" />
         <span class="small" style={{ whiteSpace: 'nowrap' }}><span class={`dot${online ? '' : ' off'}`} /> {online ? t('En ligne') : t('Hors ligne')}</span>
-        {online && <a href="/" style={{ color: 'inherit' }} class="small">{t('Grenier')}</a>}
-      </div>
-      <main class="main" style={{ maxWidth: 640, margin: '0 auto' }}>
+        {online && <a href="/" style={{ color: 'inherit' }} class="small">← {t('Retour à Grenier')}</a>}
+      </div>}
+      <main class={embedded ? '' : 'main'} style={{ maxWidth: 640, margin: embedded ? undefined : '0 auto' }}>
         {!me.company.features.coop && <div class="msg warn">{t("Le module coopérative n'est pas inclus dans l'offre de cette entreprise.")}</div>}
         {!store.persistent && <div class="msg warn">{t('Ce navigateur ne garde pas les données (navigation privée ?) : les saisies hors ligne seraient perdues à la fermeture.')}</div>}
+        {online && (!items.length || !members.filter((m) => !String(m.id).startsWith('tmp-')).length) && <div class="msg info">
+          {t('Pour saisir des livraisons, il faut d’abord :')}
+          {!items.length && <> · <a href="/stock">{t('créer au moins une matière première (Stock → Nouvel article)')}</a></>}
+          {!members.length && <> · <a href="/cooperative">{t('enregistrer les membres (Coopérative → Nouveau membre, ou « Nouveau membre » ci-dessous)')}</a></>}
+        </div>}
+        {embedded && <div class="msg info small">{t('Sur le téléphone d’un agent : ouvrez l’adresse « réseau local » affichée au démarrage de Grenier, suivie de /terrain, puis « Ajouter à l’écran d’accueil ».')}</div>}
         {errs > 0 && <div class="msg err">{t('{n} saisie(s) refusée(s) par le serveur : voir « En attente ».', { n: errs })}</div>}
         {receipt ? <Receipt e={receipt} company={me.company.name} pending={queue.some((q) => q.client_ref === receipt.client_ref)} onNext={() => setReceipt(null)} /> : <>
           <Tabs tabs={tabs} value={cur} onChange={setTab} />

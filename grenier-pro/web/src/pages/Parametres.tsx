@@ -5,6 +5,7 @@ import { t } from '../lib/i18n';
 import { navigate, useLocation } from '../lib/router';
 import { Badge, Field, FormError, Loading, Modal, PageHead, Tabs, toast, useForm } from '../ui/kit';
 import { settingsTabs } from './settings-extensions';
+import { CloudPanel } from './Cloud';
 
 type Tab = string;
 
@@ -14,7 +15,7 @@ export function Parametres() {
   const role = p.user.role;
   const tabs: [Tab, string][] = [['entreprise', t('Entreprise')]];
   if (can.admin(role)) tabs.push(['equipe', t('Équipe')], ['licence', p.company.edition === 'local' ? t('Licence') : t('Abonnement')], ['sauvegarde', t('Sauvegarde')]);
-  if (can.correct(role)) tabs.push(['sms', t('SMS')], ['trace', t('Traçabilité en ligne')]);
+  if (can.correct(role)) tabs.push(['sms', t('SMS')], ['trace', t('Grenier en ligne')]);
   for (const x of settingsTabs) if (x.show(p)) tabs.push([x.key, t(x.label)]);
   if (can.correct(role)) tabs.push(['journal', t('Journal')]);
   tabs.push(['compte', t('Mon compte')]);
@@ -29,7 +30,7 @@ export function Parametres() {
       {tab === 'licence' && <Licence />}
       {tab === 'sauvegarde' && <Sauvegarde />}
       {tab === 'sms' && <Sms />}
-      {tab === 'trace' && <TraceEnLigne />}
+      {tab === 'trace' && <><TraceEnLigne /><CloudPanel /></>}
       {tab === 'journal' && <Journal />}
       {tab === 'compte' && <Compte />}
       {ext && <ext.render />}
@@ -197,8 +198,8 @@ function TraceEnLigne() {
   if (!s) return <Loading error={error} />;
   return (
     <div class="card" style={{ maxWidth: 820 }}>
-      <h2>{t('QR codes vérifiables en ligne')}</h2>
-      <p class="muted">{t('Les QR imprimés pointent vers une page de vérification que tout client peut ouvrir avec son téléphone (« Lot authentique », date limite, villages d’origine — jamais les noms des producteurs ni les prix).')}</p>
+      <h2>{t('Liaison au serveur en ligne et traçabilité')}</h2>
+      <p class="muted">{t('La liaison (adresse + clé fournies par votre prestataire) active les QR vérifiables en ligne, la sauvegarde en ligne et la consultation à distance. Les QR pointent vers une page de vérification (« Lot authentique », date limite, villages d’origine — jamais les noms des producteurs ni les prix).')}</p>
       {s.hosted ? (s.public_url ? <div class="msg ok">{t('Version hébergée : les QR pointent vers {u}. Aucune liaison nécessaire.', { u: s.public_url })}</div> : <div class="msg warn">{t('Version hébergée sans adresse publique : définissez GRENIER_PUBLIC_URL sur le serveur.')}</div>) : <>
         {s.connected
           ? <div class="msg ok">{t('Relié à {u} (identifiant {s}). Lots publiés : {p} · en attente : {w}.', { u: s.url, s: s.slug, p: s.published, w: s.pending })}{s.last_ok && ` ${t('Dernier envoi réussi : {d}.', { d: frDateTime(s.last_ok) })}`}</div>

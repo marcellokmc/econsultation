@@ -13,6 +13,7 @@ import { Tracabilite, TraceDetail, Etiquettes, PublicTrace } from './pages/Traca
 import { Cooperative, MembrePage, RecuPage } from './pages/Cooperative';
 import { Parametres } from './pages/Parametres';
 import { Terrain } from './pages/Terrain';
+import { Distant } from './pages/Cloud';
 import { pages as extraPages } from './pages/extensions';
 
 type NavItem = { href: string; label: string; icon: string; show: (p: Profile) => boolean };
@@ -114,6 +115,7 @@ export function App() {
   // pages publiques
   const pub = match('/t/:slug/:code', path);
   if (pub) return <PublicTrace slug={pub.slug} code={pub.code} />;
+  if (path === '/distant') return <Distant />;
   // la collecte terrain fonctionne sans connexion (données gardées sur le téléphone)
   if (path === '/terrain' && (state === 'offline' || state === 'ready')) return <><Terrain offline={state === 'offline'} /><ToastHost /></>;
   if (state === 'loading') return <div class="authwrap"><div class="authcard"><Loading /></div></div>;

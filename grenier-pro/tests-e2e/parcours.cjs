@@ -163,7 +163,7 @@ async function pick(select, prefix) {
   });
   await step('paramètres : chaque onglet', async () => {
     await go('/parametres');
-    for (const tab of ['Équipe', 'Licence', 'Sauvegarde', 'SMS', 'Traçabilité en ligne', 'Journal', 'Mon compte', 'Entreprise']) {
+    for (const tab of ['Équipe', 'Licence', 'Sauvegarde', 'SMS', 'Grenier en ligne', 'Journal', 'Mon compte', 'Entreprise']) {
       await p.click(`[role=tab]:has-text("${tab}")`); await p.waitForTimeout(400);
       expect(!(await p.locator('.msg.err').count()), `erreur dans l’onglet ${tab}`);
     }

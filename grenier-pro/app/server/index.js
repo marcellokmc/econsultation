@@ -12,6 +12,7 @@ import { makeMessenger } from './notify.js';
 import { makeRegistry, verifyPage } from './registry.js';
 import { applyLicence, installLicence } from './licence.js';
 import { AUDIT_LABELS, auditDetail } from './audit.js';
+import { MODULE_JOBS } from './modules/index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const APP_DIR = path.resolve(here, '..');
@@ -62,7 +63,16 @@ export function startServer(opts = {}) {
     install: (text) => { const r = installLicence(db, text); if (r.ok) licenceStatus = r.status; return r; },
   } : null;
   const afterRegister = () => { if (licensed) licenceStatus = applyLicence(db); };
-  const { routes, RULE, isWritable } = buildRoutes({ S, mode, x: { messenger, registry, licence, publicUrl, afterRegister } });
+  /** Copie cohérente de la base (pour la sauvegarde en ligne) ; à supprimer par l'appelant. */
+  const snapshotDb = () => {
+    const tmp = path.join(dataDir, `.instantane-${process.pid}-${Date.now()}.db`);
+    db.exec(`VACUUM INTO '${tmp.replace(/'/g, "''")}'`);
+    return tmp;
+  };
+  // Après une restauration : la base a été remplacée, Grenier doit redémarrer pour l'ouvrir.
+  const requestRestart = opts.onRestart ?? (() => { console.log('\n  Restauration terminée : relancez Grenier Pro.\n'); setTimeout(() => process.exit(0), 300); });
+  const x = { messenger, registry, licence, publicUrl, afterRegister, db, dataDir, snapshotDb, requestRestart, mode };
+  const { routes, RULE, isWritable } = buildRoutes({ S, mode, x });
 
   db.exec("DELETE FROM tokens WHERE created_at < datetime('now','-30 days')"); // sessions expirées
 
@@ -87,6 +97,7 @@ export function startServer(opts = {}) {
     jobs.push(setInterval(() => { registry.publish().catch(() => {}); }, 10 * 60 * 1000));
     jobs.push(setTimeout(() => { registry.publish().catch(() => {}); }, 20 * 1000));
     if (licensed) jobs.push(setInterval(() => { try { licenceStatus = applyLicence(db); } catch { /* ignoré */ } }, 3600 * 1000));
+    for (const start of MODULE_JOBS) jobs.push(...start({ S, db, x }));
     jobs.forEach((j) => j.unref());
   }
 
@@ -112,9 +123,12 @@ export function startServer(opts = {}) {
     return { token, user: row, company: S.get('SELECT * FROM companies WHERE id=?', row.company_id) };
   }
 
-  async function readBody(req) {
+  /** Corps de la requête : JSON (2 Mo maximum) ou, pour les routes « raw », octets bruts (taille fixée par la route). */
+  async function readBody(req, route) {
+    const limit = route.opts.raw ? (route.opts.maxBytes ?? 50e6) : 2e6;
     const chunks = []; let size = 0;
-    for await (const c of req) { size += c.length; if (size > 2e6) throw new HttpError(413, 'Requête trop volumineuse.'); chunks.push(c); }
+    for await (const c of req) { size += c.length; if (size > limit) throw new HttpError(413, 'Requête trop volumineuse.'); chunks.push(c); }
+    if (route.opts.raw) return Buffer.concat(chunks);
     if (!chunks.length) return {};
     try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new HttpError(400, 'JSON invalide.'); }
   }
@@ -132,7 +146,7 @@ export function startServer(opts = {}) {
     if (route.opts.limit && limited(ip)) throw new HttpError(429, 'Trop de tentatives. Réessayez dans une minute.');
     const m = url.pathname.match(route.re);
     const params = Object.fromEntries(route.keys.map((k, i) => [k, m[i + 1]]));
-    const ctx = { params, query: Object.fromEntries(url.searchParams), headers: req.headers, body: req.method === 'GET' ? {} : await readBody(req) };
+    const ctx = { params, query: Object.fromEntries(url.searchParams), headers: req.headers, body: req.method === 'GET' ? {} : await readBody(req, route) };
     if (!route.opts.public) {
       Object.assign(ctx, authenticate(req));
       if (req.method !== 'GET' && !route.opts.always && !isWritable(ctx.company)) throw new HttpError(402, "Votre abonnement est expiré : l'application est en lecture seule. Contactez-nous pour le renouveler.", undefined, { code: 'subscription_expired' });
@@ -201,7 +215,7 @@ export function startServer(opts = {}) {
 
   const ready = new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, host, () => resolve(server.address().port)); });
   const close = () => new Promise((r) => { timer && clearInterval(timer); jobs.forEach((j) => clearInterval(j)); server.close(() => { db.close(); r(); }); });
-  return { server, ready, close, db, S, backup, dataDir, mode, messenger, registry, licence: () => licenceStatus };
+  return { server, ready, close, db, S, backup, dataDir, mode, messenger, registry, x, licence: () => licenceStatus };
 }
 
 // ---------- lancement en ligne de commande ----------

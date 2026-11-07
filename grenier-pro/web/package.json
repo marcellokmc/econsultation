@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "textes:exporter": "node scripts/textes.mjs exporter",
+    "textes:importer": "node scripts/textes.mjs importer"
   },
   "dependencies": {
     "@fontsource/bricolage-grotesque": "5.3.0",

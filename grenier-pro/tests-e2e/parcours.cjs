@@ -208,8 +208,9 @@ async function pick(select, prefix) {
     const pub = await browser.newPage(); watch(pub, 'public');
     await pub.goto(`${B}/t/faso-delices-demo/${encodeURIComponent(lot[0].code)}`); await pub.waitForSelector('text=Lot authentique'); await shot(pub, '11-public'); await pub.close();
   });
-  await step('langue : le sélecteur change la langue', async () => {
-    await go('/'); await p.selectOption('.side-foot select', 'mos'); await p.waitForTimeout(300); await p.selectOption('.side-foot select', 'fr');
+  await step('langue : le choix de langue n’apparaît que si une traduction a été importée', async () => {
+    await go('/'); const n = await p.locator('.side-foot select option').count();
+    expect(n === 0 || n > 1, 'sélecteur de langue incohérent');
   });
 
   // ================= téléphone =================

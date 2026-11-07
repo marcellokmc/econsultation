@@ -69,11 +69,11 @@ function Shell({ profile, children, path }: { profile: Profile; children: any; p
         <div class="side-foot">
           {profile.user.name} · {t(ROLE_LABEL[profile.user.role])}<br />
           {t('Offre')} {profile.company.plan_label}{!profile.company.writable && <><br /><b style={{ color: '#F08A82' }}>{t('Lecture seule')}</b></>}
-          <label class="small" style={{ display: 'block', marginTop: 10 }}>{t('Langue')}
+          {LANGS.length > 1 && <label class="small" style={{ display: 'block', marginTop: 10 }}>{t('Langue')}
             <select value={getLang()} onChange={(e) => setLang((e.target as HTMLSelectElement).value as Lang)}>
-              {LANGS.map((l) => <option value={l.code} key={l.code}>{l.label}{l.draft ? ' (brouillon)' : ''}</option>)}
+              {LANGS.map((l) => <option value={l.code} key={l.code}>{l.label}</option>)}
             </select>
-          </label>
+          </label>}
           <button class="linkbtn" onClick={logout}><Icon name="logout" size={15} />{t('Se déconnecter')}</button>
         </div>
       </aside>

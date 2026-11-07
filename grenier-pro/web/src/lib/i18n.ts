@@ -7,17 +7,18 @@ import { dyu } from '../i18n/dyu';
 import { ff } from '../i18n/ff';
 
 export type Lang = 'fr' | 'mos' | 'dyu' | 'ff';
-export const LANGS: { code: Lang; label: string; draft?: boolean }[] = [
+const DICTS: Record<Lang, Record<string, string>> = { fr: {}, mos, dyu, ff };
+/** Langues proposées : le français, et chaque langue dès que des traductions ont été importées (scripts/textes.mjs). */
+export const LANGS: { code: Lang; label: string; draft?: boolean }[] = ([
   { code: 'fr', label: 'Français' },
   { code: 'mos', label: 'Mooré', draft: true },
   { code: 'dyu', label: 'Dioula', draft: true },
   { code: 'ff', label: 'Fulfulde', draft: true },
-];
-const DICTS: Record<Lang, Record<string, string>> = { fr: {}, mos, dyu, ff };
+] as { code: Lang; label: string; draft?: boolean }[]).filter((l) => l.code === 'fr' || Object.keys(DICTS[l.code]).length > 0);
 const KEY = 'grenier.lang';
 
 let lang: Lang = (() => { try { return (localStorage.getItem(KEY) as Lang) || 'fr'; } catch { return 'fr'; } })();
-if (!DICTS[lang]) lang = 'fr';
+if (!LANGS.some((l) => l.code === lang)) lang = 'fr';
 const listeners = new Set<() => void>();
 
 export function t(fr: string, vars?: Record<string, string | number>): string {

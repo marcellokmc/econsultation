@@ -58,5 +58,25 @@ export function seedDemo(S) {
     if (k % 10 === 7) for (const i of S.listInvoices(cid)) if (i.status === 'active' && i.balance > 0 && i.issued_on <= addDays(d, -12) && rnd() < 0.5) ok(() => S.addPayment(cid, i.id, { paid_on: d, amount: i.balance, method: pick(MODES) }));
     if (k % 14 === 6) for (const m of S.listMembers(cid)) if (m.balance > 1000 && rnd() < 0.8) ok(() => S.createPayout(cid, { member_id: m.id, paid_on: d, amount: Math.round((m.balance * (0.6 + rnd() * 0.4)) / 50) * 50, method: pick(['Espèces', 'Orange Money', 'Moov Money']) }));
   }
+  // --- modules 2.0 : filières, qualité ---
+  S.run("UPDATE items SET filiere='karite' WHERE company_id=? AND code IN ('AKA','BKA')", cid);
+  S.run("UPDATE items SET filiere='sesame' WHERE company_id=? AND code IN ('SES','HSE')", cid);
+  S.run("UPDATE items SET filiere='mangue' WHERE company_id=? AND code IN ('MAN','MSE')", cid);
+  const T = [
+    ['Réception de matière première', 'reception', [["Taux d'humidité", 'num', '%', 10, false], ['Absence de moisissures', 'ok', null, null, true], ["Absence d'insectes ou de traces de rongeurs", 'ok', null, null, true], ['Absence de corps étrangers (pierres, sable, plastique)', 'ok', null, null, false], ['Sacs propres, intacts et étiquetés', 'ok', null, null, false]]],
+    ['Contrôle de production', 'production', [['Matériel nettoyé avant la production', 'ok', null, null, true], ['Hygiène du personnel (tenue, mains lavées)', 'ok', null, null, true], ['Température de cuisson ou de séchage', 'num', '°C', null, false], ['Emballages propres et intacts', 'ok', null, null, false], ['Étiquetage conforme (n° de lot, date limite)', 'ok', null, null, true]]],
+    ['Hygiène quotidienne de l’atelier', 'hygiene', [['Sols et plans de travail nettoyés', 'ok', null, null, false], ['Point de lavage des mains (eau, savon)', 'ok', null, null, false], ['Eau potable disponible', 'ok', null, null, true], ['Absence de nuisibles', 'ok', null, null, true], ['Poubelles fermées et vidées', 'ok', null, null, false]]],
+  ].map(([name, scope, items]) => {
+    const it = items.map(([label, type, unit, max, critical]) => ({ label, type, critical, ...(type === 'num' ? { unit, min: null, max } : {}) }));
+    return { id: S.lastId(S.run('INSERT INTO quality_templates(company_id,name,scope,items) VALUES (?,?,?,?)', cid, name, scope, JSON.stringify(it))), name, items: it };
+  });
+  const check = (tpl, lotId, date, fail) => {
+    const answers = tpl.items.map((i) => ({ label: i.label, critical: i.critical, ...(i.type === 'num' ? { value: i.unit === '%' ? 6 + Math.round(rnd() * 3) : 72, unit: i.unit, ok: true } : { value: !(fail === i.label), ok: fail !== i.label }) }));
+    S.run('INSERT INTO quality_checks(company_id,template_id,template_name,lot_id,done_on,answers,result,user_id,user_name) VALUES (?,?,?,?,?,?,?,?,?)', cid, tpl.id, tpl.name, lotId, date, JSON.stringify(answers), fail ? 'non_conforme' : 'conforme', owner, 'Directrice');
+  };
+  for (const l of S.all("SELECT id, received_on, origin_type FROM lots WHERE company_id=? AND origin_type IN ('member','production') ORDER BY id DESC LIMIT 14", cid)) check(l.origin_type === 'member' ? T[0] : T[1], l.id, l.received_on, null);
+  for (let i = 0; i < 10; i++) check(T[2], null, addDays(today(), -i - 1), i === 4 ? 'Absence de nuisibles' : null);
+  const sesLot = S.get("SELECT l.id FROM lots l JOIN items i ON i.id=l.item_id WHERE l.company_id=? AND i.code='SES' ORDER BY l.id DESC LIMIT 1", cid);
+  if (sesLot) S.run('INSERT INTO lab_results(company_id,lot_id,lab,analysed_on,parameter,value,unit,limit_text,conforme,reference,user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)', cid, sesLot.id, 'LNSP Ouagadougou', addDays(today(), -5), 'Aflatoxines totales', '1,8', 'µg/kg', '≤ 4', 1, 'BUL-2026-0412', owner);
   return true;
 }
